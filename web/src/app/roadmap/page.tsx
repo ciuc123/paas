@@ -3,11 +3,36 @@ import { redirect } from "next/navigation";
 
 import { getCurrentAccess } from "@/lib/access";
 import { loadRoadmapLanes, statusLabels } from "@/lib/roadmap";
+import { grantAccessFromCheckoutSession } from "@/lib/stripe-access";
 
 export const dynamic = "force-dynamic";
 
-export default async function RoadmapPage() {
-  const access = await getCurrentAccess();
+type RoadmapPageProps = {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+};
+
+export default async function RoadmapPage({ searchParams }: RoadmapPageProps) {
+  let access = await getCurrentAccess();
+
+  if (!access.hasPaidAccess && access.userId) {
+    const params = await searchParams;
+    const checkout = params.checkout;
+    const sessionId = params.session_id;
+    const isCheckoutSuccess = checkout === "success";
+    const singleSessionId =
+      typeof sessionId === "string" ? sessionId : null;
+
+    if (isCheckoutSuccess && singleSessionId) {
+      const granted = await grantAccessFromCheckoutSession({
+        clerkUserId: access.userId,
+        sessionId: singleSessionId,
+      });
+
+      if (granted) {
+        access = await getCurrentAccess();
+      }
+    }
+  }
 
   if (!access.hasPaidAccess) {
     redirect("/upgrade");

@@ -28,7 +28,7 @@ export async function POST() {
       metadata: {
         clerkUserId: userId,
       },
-      success_url: `${appUrl}/roadmap?checkout=success`,
+      success_url: `${appUrl}/roadmap?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${appUrl}/upgrade?checkout=cancel`,
     });
 
