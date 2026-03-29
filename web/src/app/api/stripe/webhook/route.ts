@@ -9,9 +9,6 @@ import { getStripeClient } from "@/lib/stripe";
 
 const webhookEvents = new Set([
   "checkout.session.completed",
-  "customer.subscription.created",
-  "customer.subscription.updated",
-  "customer.subscription.deleted",
 ]);
 
 async function updateClerkMetadata(params: {
@@ -46,21 +43,6 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   });
 }
 
-async function handleSubscriptionChanged(subscription: Stripe.Subscription) {
-  const clerkUserId = subscription.metadata?.clerkUserId || null;
-
-  if (!clerkUserId) {
-    throw new Error("subscription event missing clerkUserId in metadata");
-  }
-
-  await updateClerkMetadata({
-    clerkUserId,
-    stripeStatus: subscription.status,
-    stripeCustomerId:
-      typeof subscription.customer === "string" ? subscription.customer : null,
-  });
-}
-
 export async function POST(request: Request) {
   const stripe = getStripeClient();
   const payload = await request.text();
@@ -91,14 +73,6 @@ export async function POST(request: Request) {
   try {
     if (event.type === "checkout.session.completed") {
       await handleCheckoutCompleted(event.data.object as Stripe.Checkout.Session);
-    }
-
-    if (
-      event.type === "customer.subscription.created" ||
-      event.type === "customer.subscription.updated" ||
-      event.type === "customer.subscription.deleted"
-    ) {
-      await handleSubscriptionChanged(event.data.object as Stripe.Subscription);
     }
   } catch (error) {
     console.error("Stripe webhook handling error:", error);

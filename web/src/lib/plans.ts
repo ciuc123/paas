@@ -1,6 +1,6 @@
 export const PRODUCT_CONFIG = {
   name: "PaaS Roadmap Access",
-  priceLabel: "$19/month",
+  priceLabel: "One-time purchase",
   description:
     "Paid access to the live product roadmap and execution status updates.",
 } as const;
