@@ -16,6 +16,8 @@ It includes Clerk auth, Stripe checkout/webhooks, and protected roadmap access s
 
 Start from [web/README.md](web/README.md) and [web/.env.example](web/.env.example).
 
+For local containers, the repository now includes [docker-compose.yml](docker-compose.yml) plus [web/Dockerfile](web/Dockerfile). Use `docker compose up --build web` for the app only or `docker compose --profile stripe up --build` to include the Stripe CLI webhook forwarder.
+
 ## Online Roadmap
 
 After pushing to `main`, the roadmap is published with GitHub Pages at:

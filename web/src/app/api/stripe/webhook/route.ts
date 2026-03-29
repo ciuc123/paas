@@ -3,7 +3,10 @@ import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 
-import { getStripeWebhookSecret } from "@/lib/env";
+import {
+  getStripeWebhookSecret,
+  shouldSkipStripeWebhookSignatureVerification,
+} from "@/lib/env";
 import { isPaidStatus } from "@/lib/plans";
 import { getStripeClient } from "@/lib/stripe";
 
@@ -47,19 +50,25 @@ export async function POST(request: Request) {
   const stripe = getStripeClient();
   const payload = await request.text();
   const signature = (await headers()).get("stripe-signature");
+  const skipSignatureVerification =
+    shouldSkipStripeWebhookSignatureVerification();
 
-  if (!signature) {
+  if (!skipSignatureVerification && !signature) {
     return NextResponse.json({ error: "Missing stripe-signature" }, { status: 400 });
   }
 
   let event: Stripe.Event;
 
   try {
-    event = stripe.webhooks.constructEvent(
-      payload,
-      signature,
-      getStripeWebhookSecret(),
-    );
+    if (skipSignatureVerification) {
+      event = JSON.parse(payload) as Stripe.Event;
+    } else {
+      event = stripe.webhooks.constructEvent(
+        payload,
+        signature as string,
+        getStripeWebhookSecret(),
+      );
+    }
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Invalid webhook signature";

@@ -24,6 +24,7 @@ CLERK_SECRET_KEY=sk_test_xxx
 STRIPE_SECRET_KEY=sk_test_xxx
 STRIPE_PRICE_ID=price_xxx
 STRIPE_WEBHOOK_SECRET=whsec_xxx
+SKIP_STRIPE_WEBHOOK_SIGNATURE_VERIFICATION=false
 ```
 
 3. Start local development:
@@ -39,6 +40,32 @@ stripe listen --forward-to localhost:3000/api/stripe/webhook
 ```
 
 5. Open [http://localhost:3000](http://localhost:3000).
+
+## Docker Development
+
+1. Create `web/.env.local` from [web/.env.example](./.env.example).
+
+2. For the Docker-based Stripe workflow, set:
+
+```bash
+SKIP_STRIPE_WEBHOOK_SIGNATURE_VERIFICATION=true
+```
+
+This keeps production webhook verification intact while allowing the local Stripe CLI container to forward events without rotating a signing secret into the app container.
+
+3. Start the Next.js app in Docker:
+
+```bash
+docker compose up --build web
+```
+
+4. Start the full local stack, including Stripe webhook forwarding:
+
+```bash
+docker compose --profile stripe up --build
+```
+
+The Stripe CLI sidecar forwards events to `http://web:3000/api/stripe/webhook` inside the Compose network. Clerk and Stripe still remain external services, so you must provide valid test keys in `web/.env.local`.
 
 ## Flow
 

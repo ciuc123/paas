@@ -18,6 +18,17 @@ export function getStripePriceId(): string {
   return requireEnv("STRIPE_PRICE_ID");
 }
 
+export function shouldSkipStripeWebhookSignatureVerification(): boolean {
+  return (
+    process.env.NODE_ENV !== "production" &&
+    process.env.SKIP_STRIPE_WEBHOOK_SIGNATURE_VERIFICATION === "true"
+  );
+}
+
 export function getStripeWebhookSecret(): string {
+  if (shouldSkipStripeWebhookSignatureVerification()) {
+    return "";
+  }
+
   return requireEnv("STRIPE_WEBHOOK_SECRET");
 }
