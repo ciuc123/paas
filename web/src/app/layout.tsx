@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { ClerkProvider } from "@clerk/nextjs";
 import { Spectral, IBM_Plex_Mono } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
 
 import "./globals.css";
 
@@ -30,6 +31,7 @@ export default function RootLayout({
     <html lang="en" className={`${spectral.variable} ${plexMono.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">
         <ClerkProvider>{children}</ClerkProvider>
+        <Analytics />
       </body>
     </html>
   );
