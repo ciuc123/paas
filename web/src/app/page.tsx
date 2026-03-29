@@ -2,6 +2,8 @@ import { UserButton } from "@clerk/nextjs";
 import { auth } from "@clerk/nextjs/server";
 import Link from "next/link";
 
+import { HamburgerMenu } from "@/components/hamburger-menu";
+
 export default async function Home() {
   const { userId } = await auth();
 
@@ -12,7 +14,10 @@ export default async function Home() {
           <p className="text-xs uppercase tracking-[0.18em] text-[#245c4f]">
             PaaS paid product
           </p>
-          {userId ? <UserButton /> : null}
+          <div className="flex items-center gap-2">
+            {userId ? <UserButton /> : null}
+            <HamburgerMenu isSignedIn={!!userId} />
+          </div>
         </header>
 
         <section className="max-w-3xl">
