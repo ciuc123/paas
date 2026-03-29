@@ -15,14 +15,16 @@ Use this instruction when shaping external messaging and acquisition.
 - Plan outreach through email, direct messages, coach groups, and communities.
 - Set up a newsletter with a basic onboarding sequence.
 
-## Checklist
+## Task Status
 
-- [ ] Define product positioning for a concrete coach persona.
-- [ ] Create the landing page.
-- [ ] Create short demo videos.
-- [ ] Create the quick-start guide.
-- [ ] Plan and execute outreach to coaches.
-- [ ] Set up the newsletter and onboarding sequence.
+| Task | Status | Notes |
+| --- | --- | --- |
+| Define product positioning for a concrete coach persona. | not_started | Positioning is not finalized yet. |
+| Create the landing page. | not_started | No public landing page exists yet. |
+| Create short demo videos. | not_started | No demo videos exist yet. |
+| Create the quick-start guide. | not_started | No quick-start guide exists yet. |
+| Plan and execute outreach to coaches. | not_started | No outreach plan or execution log exists yet. |
+| Set up the newsletter and onboarding sequence. | not_started | No newsletter flow exists yet. |
 
 ## Output Expectations
 

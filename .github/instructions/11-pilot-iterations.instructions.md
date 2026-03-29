@@ -15,14 +15,16 @@ Use this instruction when preparing or running early pilots.
 - Prioritize and fix critical pilot bugs quickly.
 - Document effective patterns for configuring tools.
 
-## Checklist
+## Task Status
 
-- [ ] Select the pilot coaches.
-- [ ] Run guided onboarding for the first pilots.
-- [ ] Collect technical problems and product gaps.
-- [ ] Iterate on questionnaire wording and logic.
-- [ ] Resolve critical pilot bugs.
-- [ ] Document best practices for tool configuration.
+| Task | Status | Notes |
+| --- | --- | --- |
+| Select the pilot coaches. | not_started | No pilot cohort has been selected yet. |
+| Run guided onboarding for the first pilots. | not_started | No pilot onboarding has started yet. |
+| Collect technical problems and product gaps. | not_started | No pilot issue log exists yet. |
+| Iterate on questionnaire wording and logic. | not_started | Depends on pilot usage and feedback. |
+| Resolve critical pilot bugs. | not_started | No pilot bugs exist yet because pilot work has not started. |
+| Document best practices for tool configuration. | not_started | No pilot-derived best practices exist yet. |
 
 ## Output Expectations
 

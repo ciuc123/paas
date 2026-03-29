@@ -16,15 +16,17 @@ Use this instruction when defining or implementing security and privacy controls
 - Produce terms and conditions plus a privacy policy draft.
 - Support GDPR-style account and data deletion capabilities.
 
-## Checklist
+## Task Status
 
-- [ ] Define the permission model.
-- [ ] Implement authentication and authorization.
-- [ ] Implement rate limiting.
-- [ ] Implement audit logs.
-- [ ] Define the data storage and retention policy.
-- [ ] Draft terms and conditions plus privacy policy.
-- [ ] Implement GDPR-style deletion options.
+| Task | Status | Notes |
+| --- | --- | --- |
+| Define the permission model. | not_started | No role model specification exists yet. |
+| Implement authentication and authorization. | not_started | No auth or authorization logic exists yet. |
+| Implement rate limiting. | not_started | No rate limiting controls exist yet. |
+| Implement audit logs. | not_started | No audit logging implementation exists yet. |
+| Define the data storage and retention policy. | not_started | No retention policy doc exists yet. |
+| Draft terms and conditions plus privacy policy. | not_started | No legal draft files exist yet. |
+| Implement GDPR-style deletion options. | not_started | No account or data deletion flow exists yet. |
 
 ## Output Expectations
 

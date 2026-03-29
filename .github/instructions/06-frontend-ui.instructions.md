@@ -17,16 +17,18 @@ Use this instruction when working on the coach-facing and public-facing frontend
 - Create public pages for initial tool types, such as PDF access, chatbot Q&A, and a basic client portal.
 - Support minimal whitelabeling through logo, colors, and limited custom text.
 
-## Checklist
+## Task Status
 
-- [ ] Set up the frontend project.
-- [ ] Implement onboarding for coaches.
-- [ ] Implement the coach dashboard.
-- [ ] Implement the multi-step wizard.
-- [ ] Implement the tool preview page.
-- [ ] Implement the advanced settings page.
-- [ ] Implement public tool pages.
-- [ ] Implement minimal whitelabeling.
+| Task | Status | Notes |
+| --- | --- | --- |
+| Set up the frontend project. | not_started | No frontend application scaffold exists yet. |
+| Implement onboarding for coaches. | not_started | No onboarding UI exists yet. |
+| Implement the coach dashboard. | not_started | No dashboard UI exists yet. |
+| Implement the multi-step wizard. | not_started | No wizard UI exists yet. |
+| Implement the tool preview page. | not_started | No preview UI exists yet. |
+| Implement the advanced settings page. | not_started | No advanced settings UI exists yet. |
+| Implement public tool pages. | not_started | No public-facing tool pages exist yet. |
+| Implement minimal whitelabeling. | not_started | No whitelabel support exists yet. |
 
 ## Output Expectations
 

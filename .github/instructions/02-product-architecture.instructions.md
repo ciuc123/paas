@@ -16,15 +16,17 @@ Use this instruction when translating the product idea into an internal technica
 - Describe how a blueprint is translated into concrete software components and infrastructure.
 - Select a realistic stack for frontend, backend, database, AI provider, and auth provider.
 
-## Checklist
+## Task Status
 
-- [ ] Define the end-to-end product flow from coach input to deployment.
-- [ ] List the initial tool types the platform supports.
-- [ ] Document the automated decision areas and decision boundaries.
-- [ ] Draft the internal blueprint schema.
-- [ ] Mark mandatory and optional blueprint fields.
-- [ ] Sketch the internal API surface that consumes and produces blueprints.
-- [ ] Choose the initial technical stack with reasons and constraints.
+| Task | Status | Notes |
+| --- | --- | --- |
+| Define the end-to-end product flow from coach input to deployment. | not_started | The flow is described conceptually, but no formal product flow doc exists. |
+| List the initial tool types the platform supports. | not_started | Candidate tool types are noted, but no locked list is tracked. |
+| Document the automated decision areas and decision boundaries. | not_started | No decision matrix or architecture note exists yet. |
+| Draft the internal blueprint schema. | not_started | No JSON or YAML blueprint schema has been added to the repo. |
+| Mark mandatory and optional blueprint fields. | not_started | Depends on blueprint schema definition. |
+| Sketch the internal API surface that consumes and produces blueprints. | not_started | No API design draft exists yet. |
+| Choose the initial technical stack with reasons and constraints. | not_started | No final stack decision document is in the repo. |
 
 ## Output Expectations
 

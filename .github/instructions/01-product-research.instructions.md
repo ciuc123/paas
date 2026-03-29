@@ -16,16 +16,18 @@ Apply these checkpoints when defining the product direction for the platform.
 - Choose a pricing model deliberately: per coach, per workspace, per seat, or per usage.
 - Validate the concept quickly with 2-3 coaches, including willingness to pay.
 
-## Checklist
+## Task Status
 
-- [ ] Define the primary coach persona and early adopter profile.
-- [ ] Run and document 5-10 coach interviews.
-- [ ] Summarize the current workflow coaches use to sell and deliver value.
-- [ ] Map the main competitors, substitutes, and gaps in the market.
-- [ ] Write a clear core value statement for the product.
-- [ ] Select the first 3-5 use cases to support.
-- [ ] Decide the initial pricing model and rationale.
-- [ ] Validate desirability and price sensitivity with 2-3 real coaches.
+| Task | Status | Notes |
+| --- | --- | --- |
+| Define the primary coach persona and early adopter profile. | not_started | No persona decision has been recorded yet. |
+| Run and document 5-10 coach interviews. | not_started | No interview plan or notes exist in the repo yet. |
+| Summarize the current workflow coaches use to sell and deliver value. | not_started | Depends on interview input and research synthesis. |
+| Map the main competitors, substitutes, and gaps in the market. | not_started | No competition analysis has been documented yet. |
+| Write a clear core value statement for the product. | not_started | The product intent exists, but no final value statement is locked. |
+| Select the first 3-5 use cases to support. | not_started | Candidate use cases exist, but no explicit final selection is tracked. |
+| Decide the initial pricing model and rationale. | not_started | No pricing decision is stored yet. |
+| Validate desirability and price sensitivity with 2-3 real coaches. | not_started | Validation with paying intent has not started. |
 
 ## Output Expectations
 

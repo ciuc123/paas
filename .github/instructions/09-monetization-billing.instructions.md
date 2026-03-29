@@ -15,14 +15,16 @@ Use this instruction when working on monetization and billing.
 - Provide a public pricing page with benefits and constraints.
 - Make upgrade and downgrade flows understandable from the dashboard.
 
-## Checklist
+## Task Status
 
-- [ ] Choose the payments provider.
-- [ ] Define pricing plans and limits.
-- [ ] Implement subscription management.
-- [ ] Implement per-plan enforcement.
-- [ ] Create the pricing page.
-- [ ] Implement upgrade and downgrade UX.
+| Task | Status | Notes |
+| --- | --- | --- |
+| Choose the payments provider. | not_started | No payments provider decision exists yet. |
+| Define pricing plans and limits. | not_started | No plan matrix is documented yet. |
+| Implement subscription management. | not_started | No subscription system exists yet. |
+| Implement per-plan enforcement. | not_started | No billing limit enforcement exists yet. |
+| Create the pricing page. | not_started | No pricing page exists yet. |
+| Implement upgrade and downgrade UX. | not_started | No billing management UI exists yet. |
 
 ## Output Expectations
 

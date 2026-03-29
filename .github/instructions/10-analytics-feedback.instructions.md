@@ -14,13 +14,15 @@ Use this instruction when measuring product usage and collecting insight.
 - Collect testimonials from early users.
 - Produce a recurring internal report that summarizes usage and feedback.
 
-## Checklist
+## Task Status
 
-- [ ] Implement core product metrics.
-- [ ] Implement a coach usage dashboard.
-- [ ] Implement in-app feedback capture.
-- [ ] Set up testimonial collection.
-- [ ] Produce a lightweight recurring internal report.
+| Task | Status | Notes |
+| --- | --- | --- |
+| Implement core product metrics. | not_started | No analytics implementation exists yet. |
+| Implement a coach usage dashboard. | not_started | No coach analytics UI exists yet. |
+| Implement in-app feedback capture. | not_started | No in-app feedback flow exists yet. |
+| Set up testimonial collection. | not_started | No testimonial workflow exists yet. |
+| Produce a lightweight recurring internal report. | not_started | No reporting cadence or template exists yet. |
 
 ## Output Expectations
 

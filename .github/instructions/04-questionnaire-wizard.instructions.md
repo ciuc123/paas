@@ -16,15 +16,17 @@ Use this instruction when defining how coach answers are collected and translate
 - Map answers to technical rules through a documented rules engine.
 - Keep the decision logic explainable internally.
 
-## Checklist
+## Task Status
 
-- [ ] Define questions about client audience and usage patterns.
-- [ ] Define questions about content format and update cadence.
-- [ ] Define questions about access, payment, and authentication.
-- [ ] Define questions about branding and experience type.
-- [ ] Define questions about security and compliance.
-- [ ] Map questionnaire responses to technical rules and defaults.
-- [ ] Document the decision logic clearly for internal use.
+| Task | Status | Notes |
+| --- | --- | --- |
+| Define questions about client audience and usage patterns. | not_started | No questionnaire draft exists yet. |
+| Define questions about content format and update cadence. | not_started | No content question set exists yet. |
+| Define questions about access, payment, and authentication. | not_started | No access decision questions are stored yet. |
+| Define questions about branding and experience type. | not_started | No branding question set exists yet. |
+| Define questions about security and compliance. | not_started | No compliance question set exists yet. |
+| Map questionnaire responses to technical rules and defaults. | not_started | No rules mapping artifact exists yet. |
+| Document the decision logic clearly for internal use. | not_started | No internal logic doc exists yet. |
 
 ## Output Expectations
 

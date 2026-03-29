@@ -16,15 +16,17 @@ Use this instruction when building the content ingestion and AI features.
 - Create prompt variants for specific coach types, such as life, business, and fitness.
 - Implement basic guardrails, including inappropriate language filtering and visible disclaimers.
 
-## Checklist
+## Task Status
 
-- [ ] Choose the AI provider and baseline models.
-- [ ] Implement PDF upload flows.
-- [ ] Implement PDF processing and vector storage.
-- [ ] Implement the Q&A API over content.
-- [ ] Create generic prompt templates.
-- [ ] Create coach-type-specific prompt templates.
-- [ ] Implement basic guardrails and disclaimers.
+| Task | Status | Notes |
+| --- | --- | --- |
+| Choose the AI provider and baseline models. | not_started | No AI provider decision is committed yet. |
+| Implement PDF upload flows. | not_started | No upload UI or backend flow exists yet. |
+| Implement PDF processing and vector storage. | not_started | No extraction, chunking, or vector storage code exists yet. |
+| Implement the Q&A API over content. | not_started | No Q&A endpoint exists yet. |
+| Create generic prompt templates. | not_started | No prompt template library exists yet. |
+| Create coach-type-specific prompt templates. | not_started | No coach-specific prompt variants exist yet. |
+| Implement basic guardrails and disclaimers. | not_started | No safety or disclaimer layer exists yet. |
 
 ## Output Expectations
 

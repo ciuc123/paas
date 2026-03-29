@@ -16,15 +16,17 @@ Use this instruction when shaping the product experience for coaches.
 - Use a simple, friendly, non-technical tone of voice.
 - Test wireframes with 2-3 coaches and translate feedback into concrete revisions.
 
-## Checklist
+## Task Status
 
-- [ ] Map the full coach user journey.
-- [ ] Create a dashboard wireframe.
-- [ ] Create a wizard wireframe.
-- [ ] Create a generated tool preview wireframe.
-- [ ] Create an advanced settings wireframe.
-- [ ] Define the UI tone of voice and wording guidelines.
-- [ ] Validate wireframes with coaches and record improvement points.
+| Task | Status | Notes |
+| --- | --- | --- |
+| Map the full coach user journey. | not_started | No end-to-end UX journey document exists yet. |
+| Create a dashboard wireframe. | not_started | No dashboard wireframe has been created in the repo. |
+| Create a wizard wireframe. | not_started | No wizard wireframe has been created in the repo. |
+| Create a generated tool preview wireframe. | not_started | No preview wireframe exists yet. |
+| Create an advanced settings wireframe. | not_started | No advanced settings wireframe exists yet. |
+| Define the UI tone of voice and wording guidelines. | not_started | Tone guidance is directional only, not formalized. |
+| Validate wireframes with coaches and record improvement points. | not_started | Validation depends on completed wireframes. |
 
 ## Output Expectations
 
