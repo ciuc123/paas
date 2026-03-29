@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>paas roadmap</title>
+    <meta
+      name="description"
+      content="Protected roadmap for the paas coaching platform project."
+    />
+    <link rel="stylesheet" href="../assets/site.css" />
+    <script src="../assets/clerk-config.js"></script>
+  </head>
+  <body>
+    <main id="locked-shell" class="main-strip">
+      <section class="panel hero-panel">
+        <p class="eyebrow">paas roadmap access</p>
+        <h1>Sign in before loading the live roadmap.</h1>
+        <p class="lead">
+          This route now lives at <code>paas.ciuculescu.com/roadmap/</code> and
+          requires Clerk authentication before the live task lanes are fetched
+          from the <code>main</code> branch.
+        </p>
+        <div class="meta">
+          <span class="chip">Route: /roadmap/</span>
+          <span class="chip">Source: .github/instructions</span>
+          <span class="chip" id="auth-status">Checking access...</span>
+        </div>
+        <div class="cta-row">
+          <a class="cta-link" href="../">Back to site entry</a>
+          <a class="cta-link" href="../roadmap-swimlanes.md">Open source markdown</a>
+        </div>
+      </section>
+
+      <section id="signed-out-shell" class="panel auth-panel">
+        <div class="panel-header">
+          <p class="eyebrow">Authentication</p>
+          <h2>Clerk gate</h2>
+          <p class="panel-copy">
+            Use the sign-in form below to unlock the roadmap experience.
+          </p>
+        </div>
+        <div id="roadmap-auth-mount" class="sign-in-host"></div>
+      </section>
+    </main>
+
+    <main id="roadmap-shell" class="main-strip" hidden>
+      <section class="panel hero-panel">
+        <div class="panel-header">
+          <p class="eyebrow">paas project roadmap</p>
+          <h1>Live swimlanes, now on a horizontal route.</h1>
+          <p class="lead">
+            The roadmap moved from the site root to <code>/roadmap/</code>. The
+            entire experience is laid out as horizontal panels so you can move
+            left-to-right across summary, diagram, and lane details.
+          </p>
+        </div>
+        <div class="meta">
+          <span class="chip">Owner: ciuc123</span>
+          <span class="chip">Repo: paas</span>
+          <span class="chip">Source of truth: .github/instructions</span>
+          <span class="chip" id="refresh-chip">Loading live status from main...</span>
+        </div>
+        <div class="cta-row">
+          <a class="cta-link" href="../">Return to entry page</a>
+          <a class="cta-link" href="../roadmap-swimlanes.md">Open source markdown</a>
+        </div>
+      </section>
+
+      <section class="panel legend-panel">
+        <div class="panel-header">
+          <p class="eyebrow">Legend</p>
+          <h2>Status language</h2>
+          <p class="panel-copy">
+            Every lane renders directly from the task table in the instruction files.
+          </p>
+        </div>
+        <div class="legend-stack">
+          <article class="legend-card done">
+            <strong>Done</strong>
+            <p class="legend-copy">Task is complete and reflected in the repository state.</p>
+          </article>
+          <article class="legend-card in-progress">
+            <strong>In Progress</strong>
+            <p class="legend-copy">Task is actively being worked on and is not yet complete.</p>
+          </article>
+          <article class="legend-card blocked">
+            <strong>Blocked</strong>
+            <p class="legend-copy">Task cannot advance until a dependency, decision, or access issue is removed.</p>
+          </article>
+          <article class="legend-card not-started">
+            <strong>Not Started</strong>
+            <p class="legend-copy">Task exists in the roadmap but no implementation or validated output exists yet.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="panel diagram-panel">
+        <div class="panel-header inline">
+          <div>
+            <p class="eyebrow">Roadmap graph</p>
+            <h2>Mermaid diagram</h2>
+            <p class="panel-copy">
+              Lane status is fetched live on each load and rendered into a left-to-right diagram.
+            </p>
+          </div>
+          <div id="roadmap-user-button"></div>
+        </div>
+        <div class="roadmap-frame">
+          <div id="roadmap-diagram"></div>
+        </div>
+      </section>
+
+      <section class="panel snapshot-panel info">
+        <div class="panel-header">
+          <p class="eyebrow">Snapshot</p>
+          <h2>Current lane summary</h2>
+          <p id="snapshot-text" class="panel-copy">Loading current lane summary from the instruction files.</p>
+        </div>
+        <ul id="snapshot-list" class="status-list"></ul>
+      </section>
+
+      <section class="panel access-panel">
+        <div class="panel-header">
+          <p class="eyebrow">Access</p>
+          <h2>Publishing notes</h2>
+          <p class="panel-copy">
+            The roadmap is published at
+            <a href="https://paas.ciuculescu.com/roadmap/">https://paas.ciuculescu.com/roadmap/</a>.
+            Task status remains live because this frontend reads directly from GitHub.
+          </p>
+        </div>
+        <ol class="route-list">
+          <li>Edit task statuses in <code>.github/instructions/*.instructions.md</code>.</li>
+          <li>Push the changes to the <code>main</code> branch.</li>
+          <li>Refresh <code>/roadmap/</code> to see the updated live status.</li>
+          <li>Update <code>docs/assets/clerk-config.js</code> with the Clerk publishable key used by the site.</li>
+          <li>The custom domain remains versioned in <code>docs/CNAME</code>.</li>
+        </ol>
+      </section>
+
+      <div id="lane-strip" class="panel-strip"></div>
+
+      <section id="loading-state" class="panel loading info">
+        Loading live task status from the instruction files on the <code>main</code> branch.
+      </section>
+
+      <section id="error-state" class="panel error" hidden></section>
+    </main>
+
+    <script type="module">
+      import { initializeClerk } from '../assets/clerk-auth.js';
+      import { loadRoadmap } from '../assets/roadmap.js';
+
+      await initializeClerk({
+        statusId: 'auth-status',
+        signInHostId: 'roadmap-auth-mount',
+        userButtonId: 'roadmap-user-button',
+        signedInShellId: 'roadmap-shell',
+        signedOutShellId: 'signed-out-shell',
+        afterSignInUrl: '/roadmap/',
+        afterSignUpUrl: '/roadmap/',
+        afterSignOutUrl: '/',
+        onSignedIn: async () => {
+          document.getElementById('locked-shell').hidden = true;
+          await loadRoadmap({
+            diagramId: 'roadmap-diagram',
+            snapshotTextId: 'snapshot-text',
+            snapshotListId: 'snapshot-list',
+            laneStripId: 'lane-strip',
+            loadingId: 'loading-state',
+            errorId: 'error-state',
+            refreshChipId: 'refresh-chip'
+          });
+        }
+      });
+    </script>
+  </body>
+</html>

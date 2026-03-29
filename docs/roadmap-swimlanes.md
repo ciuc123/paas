@@ -4,7 +4,7 @@ This roadmap groups the work into major swimlanes and shows the execution struct
 
 The live task status now lives in `.github/instructions/*.instructions.md`.
 
-For the public live view, open `docs/index.html` locally or use `https://paas.ciuculescu.com/`.
+For the public live view, open `docs/roadmap/index.html` locally or use `https://paas.ciuculescu.com/roadmap/`.
 
 ## Live Status Source
 
@@ -96,4 +96,4 @@ flowchart LR
 1. Open [docs/roadmap-swimlanes.md](docs/roadmap-swimlanes.md).
 2. In VS Code, run `Markdown: Open Preview` or press `Ctrl+Shift+V`.
 3. If you want side-by-side preview, use `Markdown: Open Preview to the Side`.
-4. For the live public dashboard, open [docs/index.html](docs/index.html) or `https://paas.ciuculescu.com/`.
+4. For the live public dashboard, open [docs/roadmap/index.html](docs/roadmap/index.html) or `https://paas.ciuculescu.com/roadmap/`.

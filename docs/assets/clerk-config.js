@@ -1,0 +1,1 @@
+window.CLERK_PUBLISHABLE_KEY = 'pk_test_replace_me';
