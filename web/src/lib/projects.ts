@@ -1,0 +1,266 @@
+export type ProjectTask = {
+  task: string;
+  status: "done" | "in_progress" | "blocked" | "not_started";
+  notes: string;
+  contentPath?: string;
+  aiOutput?: string;
+};
+
+export type ProjectLane = {
+  id: string;
+  label: string;
+  tasks: ProjectTask[];
+};
+
+export type Project = {
+  id: string;
+  name: string;
+  description: string;
+  createdAt: string;
+  updatedAt: string;
+  lanes: ProjectLane[];
+  generateStatus: "idle" | "generating" | "done";
+};
+
+const STORAGE_KEY = "paas_projects";
+
+// In-process subscriber set — triggers useSyncExternalStore re-reads
+const subscribers = new Set<() => void>();
+
+export function subscribeProjects(callback: () => void): () => void {
+  subscribers.add(callback);
+  return () => {
+    subscribers.delete(callback);
+  };
+}
+
+function notifySubscribers(): void {
+  for (const cb of subscribers) cb();
+}
+
+export function loadProjects(): Project[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? (JSON.parse(raw) as Project[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function saveProjects(projects: Project[]): void {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(projects));
+}
+
+export function getProject(id: string): Project | null {
+  return loadProjects().find((p) => p.id === id) ?? null;
+}
+
+export function upsertProject(project: Project): void {
+  const projects = loadProjects();
+  const idx = projects.findIndex((p) => p.id === project.id);
+  if (idx === -1) {
+    projects.unshift(project);
+  } else {
+    projects[idx] = project;
+  }
+  saveProjects(projects);
+  notifySubscribers();
+}
+
+export function deleteProject(id: string): void {
+  saveProjects(loadProjects().filter((p) => p.id !== id));
+  notifySubscribers();
+}
+
+// ---------------------------------------------------------------------------
+// Prompt-based project generator (no API key needed — fully client-side mock)
+// ---------------------------------------------------------------------------
+
+const STOP_WORDS = new Set([
+  "with", "that", "this", "from", "have", "will", "your", "their",
+  "what", "when", "where", "which", "about", "into", "through",
+  "before", "after", "each", "more", "also", "both", "some", "such",
+  "than", "then", "these", "those", "very", "want", "need", "make",
+  "like", "just", "would", "could", "should", "build", "create",
+]);
+
+function extractKeywords(text: string): string[] {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z\s]/g, " ")
+    .split(/\s+/)
+    .filter((w) => w.length > 3 && !STOP_WORDS.has(w))
+    .filter((w, i, arr) => arr.indexOf(w) === i) // dedupe
+    .slice(0, 6);
+}
+
+type RawTask = { task: string; notes: string };
+type RawLane = { id: string; label: string; tasks: RawTask[] };
+
+function buildLanes(name: string, keywords: string[]): RawLane[] {
+  const primary = keywords[0] ?? "product";
+  const secondary = keywords[1] ?? "platform";
+  const audience = keywords[2] ?? "users";
+
+  return [
+    {
+      id: "discovery",
+      label: "Research & Discovery",
+      tasks: [
+        {
+          task: `Define target audience for ${primary}`,
+          notes: `Identify who benefits most from ${name} and what they need from this solution.`,
+        },
+        {
+          task: `Research existing ${primary} solutions and market gaps`,
+          notes: "Map competitors and substitutes to find your differentiation angle.",
+        },
+        {
+          task: `Conduct 5 user interviews about ${secondary} needs`,
+          notes: `Talk directly to potential ${audience}. Capture pain points in their own words.`,
+        },
+        {
+          task: `Synthesize findings into a ${primary} opportunity brief`,
+          notes: "Distill interview notes into the top 3 opportunities worth building.",
+        },
+      ],
+    },
+    {
+      id: "strategy",
+      label: "Strategy & Planning",
+      tasks: [
+        {
+          task: `Write a core value statement for ${name}`,
+          notes: "One sentence: who it helps, what it does, and why it matters.",
+        },
+        {
+          task: `Select the first 3 use cases for ${primary}`,
+          notes:
+            "Keep scope narrow. Pick the use cases with highest impact and lowest complexity.",
+        },
+        {
+          task: `Decide the pricing model for ${secondary}`,
+          notes:
+            "Choose between per-seat, per-use, subscription, or one-time payment before building.",
+        },
+        {
+          task: `Draft the technical blueprint and stack`,
+          notes:
+            "Document hosting, auth, storage, and AI provider choices before writing any code.",
+        },
+      ],
+    },
+    {
+      id: "design",
+      label: "Design & UX",
+      tasks: [
+        {
+          task: `Map the end-to-end ${primary} user journey`,
+          notes: "Trace every step from landing page through the first value moment.",
+        },
+        {
+          task: `Create wireframes for the main ${name} screens`,
+          notes: "Cover dashboard, onboarding, and the core product flow.",
+        },
+        {
+          task: `Define tone of voice and copy guidelines for ${audience}`,
+          notes: "Establish non-technical, friendly language that matches your audience.",
+        },
+        {
+          task: `Validate wireframes with 2–3 real ${primary} users`,
+          notes: "Collect feedback early before investing in development.",
+        },
+      ],
+    },
+    {
+      id: "build",
+      label: "Build & Develop",
+      tasks: [
+        {
+          task: `Set up the ${name} repository and environments`,
+          notes: "Configure dev, staging, and production environments from the start.",
+        },
+        {
+          task: `Build auth, onboarding, and the ${primary} dashboard`,
+          notes: "Get users signed in and to their first action as fast as possible.",
+        },
+        {
+          task: `Implement the core ${secondary} feature`,
+          notes: "The one thing the product must do well on day one.",
+        },
+        {
+          task: `Integrate AI or automation for ${primary} workflows`,
+          notes: "Add the smart layer that saves users time on repetitive tasks.",
+        },
+      ],
+    },
+    {
+      id: "review",
+      label: "Test & Review",
+      tasks: [
+        {
+          task: `Run a ${primary} pilot with 3–5 real ${audience}`,
+          notes:
+            "Observe them using the product without guiding them. Capture friction points.",
+        },
+        {
+          task: `Fix critical ${name} bugs from pilot feedback`,
+          notes: "Prioritize bugs that block the core user journey.",
+        },
+        {
+          task: `Validate pricing and willingness to pay for ${secondary}`,
+          notes: "Ask directly: would they pay? At what price? What would stop them?",
+        },
+      ],
+    },
+    {
+      id: "launch",
+      label: "Launch & Grow",
+      tasks: [
+        {
+          task: `Create the ${name} landing page and positioning`,
+          notes:
+            "Make the value proposition concrete with examples and outcomes, not just features.",
+        },
+        {
+          task: `Execute outreach to the first 10 ${primary} customers`,
+          notes:
+            "Direct outreach beats ads at this stage. Be specific about the problem you solve.",
+        },
+        {
+          task: `Set up analytics and feedback loops for ${secondary}`,
+          notes:
+            "Track only metrics that drive decisions. Add in-product feedback capture.",
+        },
+      ],
+    },
+  ];
+}
+
+export function generateProjectFromPrompt(
+  name: string,
+  description: string,
+): Project {
+  const keywords = extractKeywords(`${name} ${description}`);
+  const lanes = buildLanes(name, keywords);
+
+  return {
+    id: crypto.randomUUID(),
+    name,
+    description,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    generateStatus: "idle",
+    lanes: lanes.map((lane) => ({
+      id: lane.id,
+      label: lane.label,
+      tasks: lane.tasks.map((t) => ({
+        task: t.task,
+        status: "not_started" as const,
+        notes: t.notes,
+      })),
+    })),
+  };
+}
