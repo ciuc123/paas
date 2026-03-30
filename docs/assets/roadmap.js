@@ -3,20 +3,7 @@ import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.mi
 const repoOwner = 'ciuc123';
 const repoName = 'paas';
 const repoBranch = 'main';
-const instructionFiles = [
-  { id: 'research', label: 'Research & Product', path: '.github/instructions/01-product-research.instructions.md' },
-  { id: 'architecture', label: 'Framework & Architecture', path: '.github/instructions/02-product-architecture.instructions.md' },
-  { id: 'coachux', label: 'Coach UX & Questionnaire', path: '.github/instructions/03-coach-ux.instructions.md' },
-  { id: 'questionnaire', label: 'Questionnaire & Rules', path: '.github/instructions/04-questionnaire-wizard.instructions.md' },
-  { id: 'backend', label: 'Backend & Infrastructure', path: '.github/instructions/05-backend-infrastructure.instructions.md' },
-  { id: 'frontend', label: 'Frontend & UI', path: '.github/instructions/06-frontend-ui.instructions.md' },
-  { id: 'ai', label: 'AI & Content', path: '.github/instructions/07-ai-content.instructions.md' },
-  { id: 'security', label: 'Security & Privacy', path: '.github/instructions/08-security-privacy.instructions.md' },
-  { id: 'billing', label: 'Monetization & Billing', path: '.github/instructions/09-monetization-billing.instructions.md' },
-  { id: 'analytics', label: 'Analytics & Feedback', path: '.github/instructions/10-analytics-feedback.instructions.md' },
-  { id: 'pilot', label: 'Pilot & Iteration', path: '.github/instructions/11-pilot-iterations.instructions.md' },
-  { id: 'gtm', label: 'Go-To-Market', path: '.github/instructions/12-go-to-market.instructions.md' }
-];
+const lanesManifestPath = '.github/instructions/lanes.json';
 
 const statusLabels = {
   done: 'Done',
@@ -213,16 +200,38 @@ function setRefreshChip(refreshChipId, message) {
   }
 }
 
+async function loadLanesManifest() {
+  const response = await fetch(rawUrl(lanesManifestPath), { cache: 'no-store' });
+  if (!response.ok) {
+    throw new Error(`Failed to load lanes manifest: ${lanesManifestPath}`);
+  }
+  try {
+    return await response.json();
+  } catch {
+    throw new Error(`Invalid JSON in lanes manifest: ${lanesManifestPath}`);
+  }
+}
+
 async function loadStatuses() {
-  return Promise.all(instructionFiles.map(async (file) => {
-    const response = await fetch(rawUrl(file.path), { cache: 'no-store' });
+  const manifest = await loadLanesManifest();
+  return Promise.all(manifest.map(async (entry) => {
+    const response = await fetch(rawUrl(entry.path), { cache: 'no-store' });
     if (!response.ok) {
-      throw new Error(`Failed to load ${file.path}: ${response.status}`);
+      const tasks = entry.defaultTasks ?? [];
+      return {
+        id: entry.id,
+        label: entry.label,
+        path: entry.path,
+        tasks,
+        aggregateStatus: aggregateStatus(tasks)
+      };
     }
     const markdown = await response.text();
     const tasks = parseTaskTable(markdown);
     return {
-      ...file,
+      id: entry.id,
+      label: entry.label,
+      path: entry.path,
       tasks,
       aggregateStatus: aggregateStatus(tasks)
     };
