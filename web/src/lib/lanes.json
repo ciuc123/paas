@@ -1,0 +1,74 @@
+[
+  {
+    "id": "research",
+    "label": "Research & Product",
+    "path": ".github/instructions/01-product-research.instructions.md",
+    "defaultTasks": []
+  },
+  {
+    "id": "architecture",
+    "label": "Framework & Architecture",
+    "path": ".github/instructions/02-product-architecture.instructions.md",
+    "defaultTasks": []
+  },
+  {
+    "id": "coachux",
+    "label": "Coach UX",
+    "path": ".github/instructions/03-coach-ux.instructions.md",
+    "defaultTasks": []
+  },
+  {
+    "id": "questionnaire",
+    "label": "Questionnaire & Rules",
+    "path": ".github/instructions/04-questionnaire-wizard.instructions.md",
+    "defaultTasks": []
+  },
+  {
+    "id": "backend",
+    "label": "Backend & Infra",
+    "path": ".github/instructions/05-backend-infrastructure.instructions.md",
+    "defaultTasks": []
+  },
+  {
+    "id": "frontend",
+    "label": "Frontend & UI",
+    "path": ".github/instructions/06-frontend-ui.instructions.md",
+    "defaultTasks": []
+  },
+  {
+    "id": "ai",
+    "label": "AI & Content",
+    "path": ".github/instructions/07-ai-content.instructions.md",
+    "defaultTasks": []
+  },
+  {
+    "id": "security",
+    "label": "Security & Privacy",
+    "path": ".github/instructions/08-security-privacy.instructions.md",
+    "defaultTasks": []
+  },
+  {
+    "id": "billing",
+    "label": "Monetization & Billing",
+    "path": ".github/instructions/09-monetization-billing.instructions.md",
+    "defaultTasks": []
+  },
+  {
+    "id": "analytics",
+    "label": "Analytics & Feedback",
+    "path": ".github/instructions/10-analytics-feedback.instructions.md",
+    "defaultTasks": []
+  },
+  {
+    "id": "pilot",
+    "label": "Pilot & Iteration",
+    "path": ".github/instructions/11-pilot-iterations.instructions.md",
+    "defaultTasks": []
+  },
+  {
+    "id": "gtm",
+    "label": "Go-To-Market",
+    "path": ".github/instructions/12-go-to-market.instructions.md",
+    "defaultTasks": []
+  }
+]
