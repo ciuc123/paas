@@ -253,6 +253,30 @@ h3 {
   align-items: flex-start;
 }
 
+.task-content-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--accent-2);
+  text-decoration: none;
+}
+
+.task-content-link:hover {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.task-content-icon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
 .auth-stack,
 .state-stack {
   display: grid;

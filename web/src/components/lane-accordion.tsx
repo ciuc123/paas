@@ -112,7 +112,7 @@ export function LaneAccordion({ lanes }: { lanes: Lane[] }) {
                         href={getRawContentUrl(task.contentPath)}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="mt-2.5 inline-flex items-center gap-1.5 text-xs font-medium text-[#245c4f] underline-offset-2 hover:underline"
+                        className="mt-2.5 inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.06em] text-[#245c4f] underline-offset-2 hover:underline"
                       >
                         <svg
                           className="h-3.5 w-3.5"
@@ -125,10 +125,10 @@ export function LaneAccordion({ lanes }: { lanes: Lane[] }) {
                             strokeLinecap="round"
                             strokeLinejoin="round"
                             strokeWidth={2}
-                            d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
+                            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
                           />
                         </svg>
-                        View output
+                        Download
                       </a>
                     )}
                   </article>

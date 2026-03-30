@@ -59,10 +59,11 @@ function parseTaskTable(markdown) {
     .slice(2)
     .map((line) => line.split('|').slice(1, -1).map((cell) => cell.trim()))
     .filter((cells) => cells.length >= 3)
-    .map(([task, status, notes]) => ({
+    .map(([task, status, notes, content]) => ({
       task,
       status: normalizeStatus(status),
-      notes
+      notes,
+      ...(content && content.length > 0 ? { contentPath: content } : {})
     }));
 }
 
@@ -143,15 +144,24 @@ function renderLaneStrip(lanes, stripId) {
 
     const card = document.createElement('article');
     card.className = 'panel lane-panel';
-    const tasksHtml = lane.tasks.map((task) => `
+    const tasksHtml = lane.tasks.map((task) => {
+      const downloadLink = task.contentPath ? `
+        <a class="task-content-link" href="${rawUrl(task.contentPath)}" target="_blank" rel="noopener noreferrer" aria-label="Download generated content">
+          <svg class="task-content-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+          </svg>
+          Download
+        </a>` : '';
+      return `
       <article class="task-row">
         <div class="task-row-top">
           <h3 class="task-title">${task.task}</h3>
           <span class="badge ${statusClasses[task.status]}">${statusLabels[task.status]}</span>
         </div>
         <p class="task-notes">${task.notes}</p>
-      </article>
-    `).join('');
+        ${downloadLink}
+      </article>`;
+    }).join('');
 
     card.innerHTML = `
       <header class="panel-header">
