@@ -253,6 +253,13 @@ h3 {
   align-items: flex-start;
 }
 
+.task-content-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 10px;
+}
+
 .task-content-link {
   display: inline-flex;
   align-items: center;

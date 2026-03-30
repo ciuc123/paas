@@ -20,7 +20,7 @@ Apply these checkpoints when defining the product direction for the platform.
 
 | Task | Status | Notes | Content |
 | --- | --- | --- | --- |
-| Define the primary coach persona and early adopter profile. | not_started | No persona decision has been recorded yet. | docs/outputs/coach-persona.md |
+| Define the primary coach persona and early adopter profile. | done | Example persona drafted covering solo life coach and online fitness coach archetypes. | docs/outputs/coach-persona.md |
 | Run and document 5-10 coach interviews. | not_started | No interview plan or notes exist in the repo yet. | |
 | Summarize the current workflow coaches use to sell and deliver value. | not_started | Depends on interview input and research synthesis. | |
 | Map the main competitors, substitutes, and gaps in the market. | not_started | No competition analysis has been documented yet. | |
