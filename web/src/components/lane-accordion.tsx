@@ -1,14 +1,37 @@
 "use client";
 
-import { useState } from "react";
+import { type KeyboardEvent, useEffect, useState } from "react";
 
-import { type Lane, type Task, statusLabels, getContentUrl } from "@/lib/roadmap";
+import {
+  type Lane,
+  type Task,
+  statusLabels,
+  getContentUrl,
+  loadEditableRoadmap,
+  saveEditableRoadmap,
+  serializeRoadmapLanes,
+  hydrateRoadmapLanes,
+} from "@/lib/roadmap";
 
 const statusColors: Record<Task["status"], string> = {
   done: "border-emerald-200 bg-emerald-50 text-emerald-800",
   in_progress: "border-amber-200 bg-amber-50 text-amber-800",
   blocked: "border-red-200 bg-red-50 text-red-800",
   not_started: "border-[#312a22]/15 bg-white/60 text-[#5f584f]",
+};
+
+const statusOptions: Task["status"][] = [
+  "not_started",
+  "in_progress",
+  "blocked",
+  "done",
+];
+
+type TaskDraft = {
+  task: string;
+  notes: string;
+  status: Task["status"];
+  contentPath: string;
 };
 
 function getActiveLaneIndex(lanes: Lane[]): number {
@@ -20,16 +43,292 @@ function getRawContentUrl(contentPath: string): string {
   return getContentUrl(contentPath);
 }
 
-export function LaneAccordion({ lanes }: { lanes: Lane[] }) {
-  const activeLaneIndex = getActiveLaneIndex(lanes);
-  const [openIndex, setOpenIndex] = useState<number | null>(activeLaneIndex);
+function slugify(value: string): string {
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "") || crypto.randomUUID();
+}
+
+function getEmptyDraft(): TaskDraft {
+  return {
+    task: "",
+    notes: "",
+    status: "not_started",
+    contentPath: "",
+  };
+}
+
+async function persistRoadmap(lanes: Lane[]): Promise<Lane[]> {
+  const response = await fetch("/api/roadmap", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ lanes: serializeRoadmapLanes(lanes) }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to save roadmap (${response.status})`);
+  }
+
+  const data = (await response.json()) as {
+    lanes?: ReturnType<typeof serializeRoadmapLanes>;
+  };
+
+  const normalized = hydrateRoadmapLanes(
+    data.lanes ?? serializeRoadmapLanes(lanes),
+  );
+  saveEditableRoadmap(normalized);
+  return normalized;
+}
+
+function TaskDraftEditor({
+  draft,
+  onChange,
+  onSubmit,
+  onCancel,
+}: {
+  draft: TaskDraft;
+  onChange: (draft: TaskDraft) => void;
+  onSubmit: () => void;
+  onCancel: () => void;
+}) {
+  const handleTitleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      onSubmit();
+    }
+
+    if (event.key === "Escape") {
+      event.preventDefault();
+      onCancel();
+    }
+  };
 
   return (
-    <div className="space-y-2">
+    <article className="rounded-xl border border-dashed border-[#245c4f]/35 bg-white/80 p-4">
+      <div className="grid gap-3 md:grid-cols-[1fr_auto] md:items-start">
+        <input
+          autoFocus
+          value={draft.task}
+          onChange={(event) =>
+            onChange({ ...draft, task: event.target.value })
+          }
+          onKeyDown={handleTitleKeyDown}
+          placeholder="Task title"
+          className="w-full rounded-lg border border-[#245c4f]/25 bg-white px-3 py-2 text-sm font-semibold text-[#1d1a17] outline-none focus:border-[#245c4f]/45 focus:ring-2 focus:ring-[#245c4f]/20"
+        />
+        <select
+          value={draft.status}
+          onChange={(event) =>
+            onChange({
+              ...draft,
+              status: event.target.value as Task["status"],
+            })
+          }
+          className={`rounded-full border px-3 py-2 text-xs uppercase tracking-[0.08em] ${statusColors[draft.status]}`}
+        >
+          {statusOptions.map((status) => (
+            <option key={status} value={status}>
+              {statusLabels[status]}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <textarea
+        value={draft.notes}
+        onChange={(event) =>
+          onChange({ ...draft, notes: event.target.value })
+        }
+        rows={3}
+        placeholder="Task notes"
+        className="mt-3 w-full rounded-lg border border-[#312a22]/15 bg-white px-3 py-2 text-sm text-[#5f584f] outline-none focus:border-[#245c4f]/40 focus:ring-2 focus:ring-[#245c4f]/20"
+      />
+
+      <input
+        value={draft.contentPath}
+        onChange={(event) =>
+          onChange({ ...draft, contentPath: event.target.value })
+        }
+        placeholder="Optional content path"
+        className="mt-3 w-full rounded-lg border border-[#312a22]/15 bg-white px-3 py-2 text-sm text-[#1d1a17] outline-none focus:border-[#245c4f]/40 focus:ring-2 focus:ring-[#245c4f]/20"
+      />
+
+      <div className="mt-3 flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={onSubmit}
+          className="rounded-full bg-[#245c4f] px-4 py-2 text-sm font-semibold text-[#fff8f2] transition hover:bg-[#1f4f44]"
+        >
+          Save task
+        </button>
+        <button
+          type="button"
+          onClick={onCancel}
+          className="rounded-full border border-[#312a22]/15 bg-white px-4 py-2 text-sm text-[#1d1a17] transition hover:bg-[#f8f3eb]"
+        >
+          Cancel
+        </button>
+        <span className="self-center text-xs text-[#5f584f]">
+          Press Enter in the title field to add the task.
+        </span>
+      </div>
+    </article>
+  );
+}
+
+export function LaneAccordion({ lanes: initialLanes }: { lanes: Lane[] }) {
+  const [lanes, setLanes] = useState<Lane[]>(initialLanes);
+  const [openIndex, setOpenIndex] = useState<number | null>(
+    getActiveLaneIndex(initialLanes),
+  );
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const [taskDrafts, setTaskDrafts] = useState<Record<string, TaskDraft | null>>(
+    {},
+  );
+
+  useEffect(() => {
+    const saved = loadEditableRoadmap();
+    const nextLanes = saved.length > 0 ? saved : initialLanes;
+    setLanes(nextLanes);
+    setOpenIndex(getActiveLaneIndex(nextLanes));
+  }, [initialLanes]);
+
+  const save = async (nextLanes: Lane[]) => {
+    setLanes(nextLanes);
+    setIsSaving(true);
+    setSaveMessage(null);
+
+    try {
+      const normalized = await persistRoadmap(nextLanes);
+      setLanes(normalized);
+      setSaveMessage("Saved");
+    } catch (error) {
+      setSaveMessage(
+        error instanceof Error ? error.message : "Failed to save roadmap",
+      );
+    } finally {
+      setIsSaving(false);
+      window.setTimeout(() => setSaveMessage(null), 1800);
+    }
+  };
+
+  const applyLaneUpdate = async (
+    laneId: string,
+    updater: (lane: Lane) => Lane,
+    options?: { persist?: boolean },
+  ) => {
+    let nextLanesSnapshot: Lane[] = [];
+
+    setLanes((current) => {
+      nextLanesSnapshot = current.map((lane) =>
+        lane.id === laneId ? updater(lane) : lane,
+      );
+      return nextLanesSnapshot;
+    });
+
+    if (options?.persist ?? false) {
+      await save(nextLanesSnapshot);
+    }
+  };
+
+  const updateLaneLocally = (laneId: string, updater: (lane: Lane) => Lane) => {
+    void applyLaneUpdate(laneId, updater);
+  };
+
+  const commitLane = async (laneId: string, updater: (lane: Lane) => Lane) => {
+    await applyLaneUpdate(laneId, updater, { persist: true });
+  };
+
+  const updateTaskDraft = (laneId: string, draft: TaskDraft | null) => {
+    setTaskDrafts((current) => ({ ...current, [laneId]: draft }));
+  };
+
+  const submitTaskDraft = async (lane: Lane) => {
+    const draft = taskDrafts[lane.id];
+    if (!draft) return;
+
+    const taskName = draft.task.trim();
+    if (!taskName) {
+      setSaveMessage("Task title is required");
+      return;
+    }
+
+    await commitLane(lane.id, (current) => ({
+      ...current,
+      tasks: [
+        ...current.tasks,
+        {
+          id: `task-${current.tasks.length + 1}-${slugify(taskName)}`,
+          task: taskName,
+          status: draft.status,
+          notes: draft.notes.trim(),
+          ...(draft.contentPath.trim()
+            ? { contentPath: draft.contentPath.trim() }
+            : {}),
+        },
+      ],
+    }));
+
+    updateTaskDraft(lane.id, null);
+  };
+
+  const removeTask = async (laneId: string, taskIndex: number) => {
+    await commitLane(laneId, (current) => ({
+      ...current,
+      tasks: current.tasks.filter((_, index) => index !== taskIndex),
+    }));
+  };
+
+  const addLane = async () => {
+    const nextLanes: Lane[] = [
+      ...lanes,
+      {
+        id: `custom-${slugify(`lane-${lanes.length + 1}`)}`,
+        label: `New lane ${lanes.length + 1}`,
+        path: `custom/roadmap/lane-${lanes.length + 1}.md`,
+        tasks: [],
+        aggregateStatus: "not_started",
+      },
+    ];
+    setOpenIndex(nextLanes.length - 1);
+    await save(nextLanes);
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#312a22]/15 bg-[#fffaf2]/88 px-5 py-4 shadow-[0_4px_16px_rgba(68,49,31,0.08)]">
+        <div>
+          <p className="text-xs uppercase tracking-[0.18em] text-[#245c4f]">
+            editable roadmap
+          </p>
+          <p className="mt-1 text-sm text-[#5f584f]">
+            Edit lane names, task copy, notes, and statuses. New projects will snapshot the current roadmap state.
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          {saveMessage && (
+            <span className="text-xs text-[#5f584f]">{saveMessage}</span>
+          )}
+          <button
+            type="button"
+            onClick={() => void addLane()}
+            disabled={isSaving}
+            className="rounded-full bg-[#245c4f] px-4 py-2 text-sm font-semibold text-[#fff8f2] transition hover:bg-[#1f4f44] disabled:opacity-60"
+          >
+            + Add lane
+          </button>
+        </div>
+      </div>
+
       {lanes.map((lane, index) => {
         const isOpen = openIndex === index;
+        const activeLaneIndex = getActiveLaneIndex(lanes);
         const isActive = index === activeLaneIndex;
         const allDone = lane.aggregateStatus === "done";
+        const taskDraft = taskDrafts[lane.id];
 
         return (
           <div
@@ -57,7 +356,7 @@ export function LaneAccordion({ lanes }: { lanes: Lane[] }) {
                 />
                 <div className="min-w-0">
                   <p className="text-xs uppercase tracking-[0.18em] text-[#245c4f]">
-                    {isActive ? "active lane" : `lane ${index}`}
+                    {isActive ? "active lane" : `lane ${index + 1}`}
                   </p>
                   <h2 className="mt-0.5 truncate text-lg text-[#1d1a17]">
                     {lane.label}
@@ -88,81 +387,151 @@ export function LaneAccordion({ lanes }: { lanes: Lane[] }) {
             </button>
 
             {isOpen && (
-              <div className="space-y-2.5 border-t border-[#312a22]/10 px-5 pb-5 pt-4">
-                {lane.tasks.map((task) => (
-                  <article
-                    key={`${lane.id}-${task.task}`}
-                    className="rounded-xl border border-[#312a22]/15 bg-white/60 p-4"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <h3 className="text-sm font-semibold text-[#1d1a17]">
-                        {task.task}
-                      </h3>
-                      <span
-                        className={`shrink-0 rounded-full border px-2.5 py-1 text-[11px] uppercase tracking-[0.08em] ${statusColors[task.status]}`}
-                      >
-                        {statusLabels[task.status]}
-                      </span>
-                    </div>
-                    <p className="mt-1.5 text-sm text-[#5f584f]">
-                      {task.notes}
-                    </p>
-                    {task.contentPath && (
-                      <div className="mt-2.5 flex flex-wrap items-center gap-3">
-                        <a
-                          href={getRawContentUrl(task.contentPath)}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 text-xs font-medium text-[#245c4f] underline-offset-2 hover:underline"
+              <div className="space-y-4 border-t border-[#312a22]/10 px-5 pb-5 pt-4">
+                <input
+                  value={lane.label}
+                  onChange={(event) =>
+                    updateLaneLocally(lane.id, (current) => ({
+                      ...current,
+                      label: event.target.value,
+                    }))
+                  }
+                  onBlur={() => void commitLane(lane.id, (current) => current)}
+                  placeholder="Lane name"
+                  className="w-full rounded-xl border border-[#312a22]/15 bg-white px-3 py-2 text-sm font-semibold text-[#1d1a17] outline-none focus:border-[#245c4f]/40 focus:ring-2 focus:ring-[#245c4f]/20"
+                />
+
+                <div className="space-y-3">
+                  {lane.tasks.map((task, taskIndex) => (
+                    <article
+                      key={task.id ?? `${lane.id}-${taskIndex}`}
+                      className="rounded-xl border border-[#312a22]/15 bg-white/60 p-4"
+                    >
+                      <div className="grid gap-3 md:grid-cols-[1fr_auto_auto] md:items-start">
+                        <input
+                          value={task.task}
+                          onChange={(event) =>
+                            updateLaneLocally(lane.id, (current) => ({
+                              ...current,
+                              tasks: current.tasks.map((entry, entryIndex) =>
+                                entryIndex === taskIndex
+                                  ? { ...entry, task: event.target.value }
+                                  : entry,
+                              ),
+                            }))
+                          }
+                          onBlur={() =>
+                            void commitLane(lane.id, (current) => current)
+                          }
+                          placeholder="Task title"
+                          className="w-full rounded-lg border border-[#312a22]/15 bg-white px-3 py-2 text-sm font-semibold text-[#1d1a17] outline-none focus:border-[#245c4f]/40 focus:ring-2 focus:ring-[#245c4f]/20"
+                        />
+                        <select
+                          value={task.status}
+                          onChange={(event) => {
+                            const nextStatus = event.target.value as Task["status"];
+                            void commitLane(lane.id, (current) => ({
+                               ...current,
+                               tasks: current.tasks.map((entry, entryIndex) =>
+                                 entryIndex === taskIndex
+                                   ? { ...entry, status: nextStatus }
+                                   : entry,
+                               ),
+                            }));
+                           }}
+                          className={`rounded-full border px-3 py-2 text-xs uppercase tracking-[0.08em] ${statusColors[task.status]}`}
                         >
-                          <svg
-                            className="h-3.5 w-3.5"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                            aria-hidden="true"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
-                            />
-                          </svg>
-                          View output
-                        </a>
-                        {task.contentPath.endsWith(".md") && (
+                          {statusOptions.map((status) => (
+                            <option key={status} value={status}>
+                              {statusLabels[status]}
+                            </option>
+                          ))}
+                        </select>
+                        <button
+                          type="button"
+                          onClick={() => void removeTask(lane.id, taskIndex)}
+                          className="rounded-full border border-red-200 bg-red-50 px-3 py-2 text-xs font-medium text-red-700 transition hover:bg-red-100"
+                        >
+                          Remove
+                        </button>
+                      </div>
+
+                      <textarea
+                        value={task.notes}
+                        onChange={(event) =>
+                          updateLaneLocally(lane.id, (current) => ({
+                            ...current,
+                            tasks: current.tasks.map((entry, entryIndex) =>
+                              entryIndex === taskIndex
+                                ? { ...entry, notes: event.target.value }
+                                : entry,
+                            ),
+                          }))
+                        }
+                        onBlur={() => void commitLane(lane.id, (current) => current)}
+                        rows={3}
+                        placeholder="Task notes"
+                        className="mt-3 w-full rounded-lg border border-[#312a22]/15 bg-white px-3 py-2 text-sm text-[#5f584f] outline-none focus:border-[#245c4f]/40 focus:ring-2 focus:ring-[#245c4f]/20"
+                      />
+
+                      <div className="mt-3 grid gap-3 md:grid-cols-[1fr_auto] md:items-center">
+                        <input
+                          value={task.contentPath ?? ""}
+                          onChange={(event) =>
+                            updateLaneLocally(lane.id, (current) => ({
+                              ...current,
+                              tasks: current.tasks.map((entry, entryIndex) =>
+                                entryIndex === taskIndex
+                                  ? {
+                                      ...entry,
+                                      contentPath:
+                                        event.target.value.trim() || undefined,
+                                    }
+                                  : entry,
+                              ),
+                            }))
+                          }
+                          onBlur={() => void commitLane(lane.id, (current) => current)}
+                          placeholder="Optional content path"
+                          className="w-full rounded-lg border border-[#312a22]/15 bg-white px-3 py-2 text-sm text-[#1d1a17] outline-none focus:border-[#245c4f]/40 focus:ring-2 focus:ring-[#245c4f]/20"
+                        />
+                        {task.contentPath ? (
                           <a
-                            href={`/roadmap/content?path=${encodeURIComponent(task.contentPath)}`}
+                            href={getRawContentUrl(task.contentPath)}
+                            target="_blank"
+                            rel="noopener noreferrer"
                             className="inline-flex items-center gap-1.5 text-xs font-medium text-[#245c4f] underline-offset-2 hover:underline"
                           >
-                            <svg
-                              className="h-3.5 w-3.5"
-                              fill="none"
-                              stroke="currentColor"
-                              viewBox="0 0 24 24"
-                              aria-hidden="true"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                              />
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                              />
-                            </svg>
-                            Read content
+                            View output
                           </a>
+                        ) : (
+                          <span className="text-xs text-[#5f584f]">
+                            No linked content
+                          </span>
                         )}
                       </div>
-                    )}
-                  </article>
-                ))}
+                    </article>
+                  ))}
+
+                  {taskDraft && (
+                    <TaskDraftEditor
+                      draft={taskDraft}
+                      onChange={(draft) => updateTaskDraft(lane.id, draft)}
+                      onSubmit={() => void submitTaskDraft(lane)}
+                      onCancel={() => updateTaskDraft(lane.id, null)}
+                    />
+                  )}
+                </div>
+
+                {!taskDraft && (
+                  <button
+                    type="button"
+                    onClick={() => updateTaskDraft(lane.id, getEmptyDraft())}
+                    className="rounded-full border border-[#312a22]/15 bg-white/70 px-4 py-2 text-sm text-[#1d1a17] transition hover:bg-white"
+                  >
+                    + Add task
+                  </button>
+                )}
               </div>
             )}
           </div>

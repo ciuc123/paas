@@ -1,6 +1,6 @@
 "use client";
 
-import { useSyncExternalStore, useState } from "react";
+import { type KeyboardEvent, useSyncExternalStore, useState } from "react";
 import Link from "next/link";
 
 import {
@@ -51,12 +51,12 @@ export function ProjectsList() {
     setPreview(null);
   };
 
-  const handleNameKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleNameKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Escape") handleCancelCreate();
   };
 
   const handleDescriptionKeyDown = (
-    e: React.KeyboardEvent<HTMLTextAreaElement>,
+    e: KeyboardEvent<HTMLTextAreaElement>,
   ) => {
     if (e.key === "Escape") handleCancelCreate();
   };
@@ -97,7 +97,9 @@ export function ProjectsList() {
           </p>
           <p className="mt-1 text-xs text-[#5f584f]">
             Give it a name and describe what you&apos;re building. We&apos;ll
-            generate a custom roadmap of lanes and tasks tailored to your idea.
+            start from the current roadmap swimlanes and tasks, snapshot them
+            into this project, and add a few extra project-specific tasks as a
+            starting point.
           </p>
 
           <div className="mt-3 space-y-3">
@@ -180,6 +182,9 @@ export function ProjectsList() {
               <p className="text-xs font-medium uppercase tracking-[0.12em] text-[#245c4f]">
                 Generated roadmap preview — {preview.lanes.length} lanes,{" "}
                 {preview.lanes.reduce((s, l) => s + l.tasks.length, 0)} tasks
+              </p>
+              <p className="text-xs text-[#5f584f]">
+                This preview snapshots the roadmap as it exists right now. Future roadmap edits will only affect projects created later.
               </p>
               {preview.lanes.map((lane) => (
                 <details

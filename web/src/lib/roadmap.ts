@@ -8,6 +8,7 @@ type LaneManifestEntry = {
 };
 
 export type Task = {
+  id?: string;
   task: string;
   status: "done" | "in_progress" | "blocked" | "not_started";
   notes: string;
@@ -20,6 +21,23 @@ export type Lane = {
   path: string;
   tasks: Task[];
   aggregateStatus: Task["status"];
+};
+
+export const ROADMAP_STORAGE_KEY = "paas_roadmap";
+
+export type EditableTaskInput = {
+  id?: string;
+  task: string;
+  status: Task["status"];
+  notes: string;
+  contentPath?: string;
+};
+
+export type EditableLaneInput = {
+  id: string;
+  label: string;
+  path: string;
+  tasks: EditableTaskInput[];
 };
 
 const statusOrder: Task["status"][] = [
@@ -50,27 +68,74 @@ function normalizeStatus(value: string): Task["status"] {
   return normalized;
 }
 
+function slugify(value: string): string {
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "") || crypto.randomUUID();
+}
+
+function ensureTaskId(task: EditableTaskInput, index: number): EditableTaskInput {
+  return {
+    ...task,
+    id: task.id ?? `task-${index + 1}-${slugify(task.task || task.notes || "task")}`,
+  };
+}
+
+function normalizeTask(task: EditableTaskInput, index: number): Task {
+  const contentPath = task.contentPath?.trim();
+
+  return {
+    id: task.id ?? `task-${index + 1}-${slugify(task.task || task.notes || "task")}`,
+    task: task.task.trim(),
+    status: task.status,
+    notes: task.notes.trim(),
+    ...(contentPath ? { contentPath } : {}),
+  };
+}
+
+function normalizeLane(entry: EditableLaneInput, index: number): Lane {
+  const tasks = (entry.tasks ?? []).map((task, taskIndex) =>
+    normalizeTask(task, taskIndex),
+  );
+
+  return {
+    id: entry.id || `lane-${index + 1}`,
+    label: entry.label.trim() || `Lane ${index + 1}`,
+    path: entry.path,
+    tasks,
+    aggregateStatus: aggregateStatus(tasks),
+  };
+}
+
 function parseTaskTable(markdown: string): Task[] {
-  const match = markdown.match(/## Task Status\s+([\s\S]*?)(?:\n##\s|$)/);
+  const match = markdown.match(/##\s+Task Status\s+([\s\S]*?)(?:\n##\s|$)/i);
   if (!match) {
     throw new Error("Missing Task Status section");
   }
 
-  const rows = match[1]
+  const lines = match[1]
     .split("\n")
     .map((line) => line.trim())
     .filter((line) => line.startsWith("|"));
 
-  return rows
-    .slice(2)
+  const rows = lines
     .map((line) => line.split("|").slice(1, -1).map((cell) => cell.trim()))
     .filter((cells) => cells.length >= 3)
-    .map(([task, status, notes, content]) => ({
-      task,
-      status: normalizeStatus(status),
-      notes,
-      ...(content && content.length > 0 ? { contentPath: content } : {}),
-    }));
+    .filter((cells) => {
+      const first = (cells[0] ?? "").toLowerCase();
+      const second = (cells[1] ?? "").toLowerCase();
+      return first !== "task" && second !== "status" && !/^[-:\s]+$/.test(cells.join(""));
+    });
+
+  return rows.map(([task, status, notes, content], index) => ({
+    id: `task-${index + 1}-${slugify(task)}`,
+    task,
+    status: normalizeStatus(status),
+    notes,
+    ...(content && content.length > 0 ? { contentPath: content } : {}),
+  }));
 }
 
 function aggregateStatus(tasks: Task[]): Task["status"] {
@@ -97,13 +162,15 @@ export async function loadRoadmapLanes(): Promise<Lane[]> {
   const manifest = lanesManifest as LaneManifestEntry[];
 
   return Promise.all(
-    manifest.map(async (entry) => {
+    manifest.map(async (entry, index) => {
       const response = await fetch(getRawUrl(entry.path), {
         cache: "no-store",
       });
 
       if (!response.ok) {
-        const tasks = entry.defaultTasks ?? [];
+        const tasks = (entry.defaultTasks ?? []).map((task, taskIndex) =>
+          normalizeTask(task, taskIndex),
+        );
         return {
           id: entry.id,
           label: entry.label,
@@ -116,13 +183,51 @@ export async function loadRoadmapLanes(): Promise<Lane[]> {
       const markdown = await response.text();
       const tasks = parseTaskTable(markdown);
 
-      return {
-        id: entry.id,
-        label: entry.label,
-        path: entry.path,
-        tasks,
-        aggregateStatus: aggregateStatus(tasks),
-      };
+      return normalizeLane(
+        {
+          id: entry.id,
+          label: entry.label,
+          path: entry.path,
+          tasks,
+        },
+        index,
+      );
     }),
   );
+}
+
+export function serializeRoadmapLanes(lanes: Lane[]): EditableLaneInput[] {
+  return lanes.map((lane) => ({
+    id: lane.id,
+    label: lane.label,
+    path: lane.path,
+    tasks: lane.tasks.map((task, index) => ensureTaskId(task, index)),
+  }));
+}
+
+export function hydrateRoadmapLanes(input: EditableLaneInput[]): Lane[] {
+  return input.map((lane, index) => normalizeLane(lane, index));
+}
+
+export function loadEditableRoadmap(): Lane[] {
+  if (typeof window === "undefined") return [];
+
+  try {
+    const raw = localStorage.getItem(ROADMAP_STORAGE_KEY);
+    if (!raw) return [];
+    return hydrateRoadmapLanes(JSON.parse(raw) as EditableLaneInput[]);
+  } catch {
+    return [];
+  }
+}
+
+export function saveEditableRoadmap(lanes: Lane[]): Lane[] {
+  if (typeof window === "undefined") return lanes;
+  const normalized = hydrateRoadmapLanes(serializeRoadmapLanes(lanes));
+  localStorage.setItem(ROADMAP_STORAGE_KEY, JSON.stringify(serializeRoadmapLanes(normalized)));
+  return normalized;
+}
+
+export function buildProjectSnapshotFromRoadmap(lanes: Lane[]): Lane[] {
+  return hydrateRoadmapLanes(serializeRoadmapLanes(lanes));
 }
