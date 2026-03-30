@@ -3,7 +3,7 @@ import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.mi
 const repoOwner = 'ciuc123';
 const repoName = 'paas';
 const repoBranch = 'main';
-const lanesManifestPath = '.github/instructions/lanes.json';
+const lanesManifestPath = 'web/src/lib/lanes.json';
 
 const statusLabels = {
   done: 'Done',

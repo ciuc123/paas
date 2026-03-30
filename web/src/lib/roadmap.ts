@@ -1,3 +1,5 @@
+import lanesManifest from "./lanes.json";
+
 type LaneManifestEntry = {
   id: string;
   label: string;
@@ -19,8 +21,6 @@ export type Lane = {
   tasks: Task[];
   aggregateStatus: Task["status"];
 };
-
-const lanesManifestPath = ".github/instructions/lanes.json";
 
 const statusOrder: Task["status"][] = [
   "blocked",
@@ -93,26 +93,8 @@ export function getContentUrl(contentPath: string): string {
   return getRawUrl(contentPath);
 }
 
-async function loadLanesManifest(): Promise<LaneManifestEntry[]> {
-  const response = await fetch(getRawUrl(lanesManifestPath), {
-    cache: "no-store",
-  });
-
-  if (!response.ok) {
-    throw new Error(`Failed to load lanes manifest: ${lanesManifestPath}`);
-  }
-
-  try {
-    return (await response.json()) as LaneManifestEntry[];
-  } catch {
-    throw new Error(
-      `Invalid JSON in lanes manifest: ${lanesManifestPath}`,
-    );
-  }
-}
-
 export async function loadRoadmapLanes(): Promise<Lane[]> {
-  const manifest = await loadLanesManifest();
+  const manifest = lanesManifest as LaneManifestEntry[];
 
   return Promise.all(
     manifest.map(async (entry) => {
