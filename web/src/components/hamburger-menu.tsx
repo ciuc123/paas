@@ -69,6 +69,14 @@ export function HamburgerMenu({ isSignedIn }: HamburgerMenuProps) {
           >
             My content
           </Link>
+          <Link
+            href="/projects"
+            role="menuitem"
+            onClick={() => setIsOpen(false)}
+            className="flex w-full items-center rounded-xl px-4 py-2.5 text-sm text-[#1d1a17] transition hover:bg-[#f4efe7] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#245c4f]"
+          >
+            Projects
+          </Link>
           {isSignedIn ? (
             <SignOutButton>
               <button

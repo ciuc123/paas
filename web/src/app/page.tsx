@@ -38,6 +38,12 @@ export default async function Home() {
             Open paid roadmap
           </Link>
           <Link
+            href="/projects"
+            className="rounded-full border border-[#312a22]/15 bg-white/75 px-6 py-3 text-sm font-semibold text-[#1d1a17] transition hover:bg-white"
+          >
+            My projects
+          </Link>
+          <Link
             href="/upgrade"
             className="rounded-full border border-[#312a22]/15 bg-white/75 px-6 py-3 text-sm font-semibold text-[#1d1a17] transition hover:bg-white"
           >
