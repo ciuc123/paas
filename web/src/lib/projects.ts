@@ -24,6 +24,14 @@ export type Project = {
 
 const STORAGE_KEY = "paas_projects";
 
+// In-memory cache for the projects snapshot.
+// useSyncExternalStore requires getSnapshot to return the same reference when
+// the underlying data has not changed.  Parsing localStorage on every call
+// always produces a new array, which React treats as a change and triggers an
+// infinite re-render loop (React error #185).  We keep a cached reference
+// that is replaced only when saveProjects writes new data.
+let projectsCache: Project[] | null = null;
+
 // In-process subscriber set — triggers useSyncExternalStore re-reads
 const subscribers = new Set<() => void>();
 
@@ -40,17 +48,20 @@ function notifySubscribers(): void {
 
 export function loadProjects(): Project[] {
   if (typeof window === "undefined") return [];
+  if (projectsCache !== null) return projectsCache;
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? (JSON.parse(raw) as Project[]) : [];
+    projectsCache = raw ? (JSON.parse(raw) as Project[]) : [];
   } catch {
-    return [];
+    projectsCache = [];
   }
+  return projectsCache;
 }
 
 export function saveProjects(projects: Project[]): void {
   if (typeof window === "undefined") return;
   localStorage.setItem(STORAGE_KEY, JSON.stringify(projects));
+  projectsCache = projects;
 }
 
 export function getProject(id: string): Project | null {
@@ -60,12 +71,11 @@ export function getProject(id: string): Project | null {
 export function upsertProject(project: Project): void {
   const projects = loadProjects();
   const idx = projects.findIndex((p) => p.id === project.id);
-  if (idx === -1) {
-    projects.unshift(project);
-  } else {
-    projects[idx] = project;
-  }
-  saveProjects(projects);
+  const newProjects =
+    idx === -1
+      ? [project, ...projects]
+      : projects.map((p, i) => (i === idx ? project : p));
+  saveProjects(newProjects);
   notifySubscribers();
 }
 
