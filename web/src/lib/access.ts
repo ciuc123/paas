@@ -9,7 +9,12 @@ type AccessResult = {
 };
 
 export async function getCurrentAccess(): Promise<AccessResult> {
-  const user = await currentUser();
+  let user;
+  try {
+    user = await currentUser();
+  } catch {
+    return { userId: null, hasPaidAccess: false, stripeStatus: null };
+  }
 
   if (!user) {
     return {
