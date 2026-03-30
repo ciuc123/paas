@@ -4,10 +4,11 @@ type InstructionFile = {
   path: string;
 };
 
-type Task = {
+export type Task = {
   task: string;
   status: "done" | "in_progress" | "blocked" | "not_started";
   notes: string;
+  contentPath?: string;
 };
 
 export type Lane = {
@@ -124,10 +125,11 @@ function parseTaskTable(markdown: string): Task[] {
     .slice(2)
     .map((line) => line.split("|").slice(1, -1).map((cell) => cell.trim()))
     .filter((cells) => cells.length >= 3)
-    .map(([task, status, notes]) => ({
+    .map(([task, status, notes, content]) => ({
       task,
       status: normalizeStatus(status),
       notes,
+      ...(content && content.length > 0 ? { contentPath: content } : {}),
     }));
 }
 
@@ -145,6 +147,10 @@ function aggregateStatus(tasks: Task[]): Task["status"] {
 
 function getRawUrl(path: string): string {
   return `https://raw.githubusercontent.com/ciuc123/paas/main/${path}`;
+}
+
+export function getContentUrl(contentPath: string): string {
+  return getRawUrl(contentPath);
 }
 
 export async function loadRoadmapLanes(): Promise<Lane[]> {
