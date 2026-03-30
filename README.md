@@ -2,10 +2,6 @@
 
 ## Project Roadmap
 
-Open [docs/roadmap-swimlanes.md](docs/roadmap-swimlanes.md) to view the visual roadmap for the project.
-
-In VS Code, open the file and use Markdown Preview to render the Mermaid swimlanes.
-
 The live status source of truth is `.github/instructions/*.instructions.md`.
 
 ## Paid Product App
@@ -20,7 +16,7 @@ For local containers, the repository now includes [docker-compose.yml](docker-co
 
 ## Online Roadmap
 
-After pushing to `main`, the roadmap is published with GitHub Pages at:
+After pushing to `main`, the roadmap is published with Vercel at:
 
 - `https://paas.ciuculescu.com/roadmap/`
 
@@ -28,7 +24,7 @@ The public entry page is [docs/index.html](docs/index.html).
 
 The protected roadmap page is [docs/roadmap/index.html](docs/roadmap/index.html).
 
-The custom domain is configured through [docs/CNAME](docs/CNAME).
+The custom domain is configured through cloudflare.
 
 ## Live Task Status Workflow
 
@@ -74,11 +70,4 @@ Use these values as follows:
 
 ### Current Deployment Behavior
 
-The current GitHub Pages workflow in [.github/workflows/deploy-pages.yml](.github/workflows/deploy-pages.yml) uploads the `docs` folder directly and does not yet inject GitHub secrets into the published assets.
-
-That means:
-
-1. You should still update [docs/assets/clerk-config.js](docs/assets/clerk-config.js) with the real publishable key if you want the current static site sign-in flow to work.
-2. `CLERK_SECRET_KEY` should remain stored only in GitHub secrets until this project adds a server-side integration or a build step that needs it.
-
-If you later add a build or templating step to the Pages workflow, use `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` there to generate [docs/assets/clerk-config.js](docs/assets/clerk-config.js) at deploy time instead of committing the key to the repository.
+Vercel secrets are used
