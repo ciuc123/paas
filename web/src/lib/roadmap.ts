@@ -1,5 +1,7 @@
 import lanesManifest from "./lanes.json";
 
+export { lanesManifest };
+
 type LaneManifestEntry = {
   id: string;
   label: string;
@@ -158,11 +160,28 @@ export function getContentUrl(contentPath: string): string {
   return getRawUrl(contentPath);
 }
 
-export async function loadRoadmapLanes(): Promise<Lane[]> {
+export async function loadRoadmapLanes(
+  localContent?: Record<string, string>,
+): Promise<Lane[]> {
   const manifest = lanesManifest as LaneManifestEntry[];
 
   return Promise.all(
     manifest.map(async (entry, index) => {
+      // Use pre-loaded local content if provided (server-side)
+      const local = localContent?.[entry.path];
+      if (local !== undefined) {
+        try {
+          const tasks = parseTaskTable(local);
+          return normalizeLane(
+            { id: entry.id, label: entry.label, path: entry.path, tasks },
+            index,
+          );
+        } catch {
+          // fall through to remote fetch
+        }
+      }
+
+      // Fall back to GitHub raw URL
       const response = await fetch(getRawUrl(entry.path), {
         cache: "no-store",
       });
@@ -231,3 +250,4 @@ export function saveEditableRoadmap(lanes: Lane[]): Lane[] {
 export function buildProjectSnapshotFromRoadmap(lanes: Lane[]): Lane[] {
   return hydrateRoadmapLanes(serializeRoadmapLanes(lanes));
 }
+

@@ -253,6 +253,9 @@ export function LaneAccordion({ lanes: initialLanes }: { lanes: Lane[] }) {
       return;
     }
 
+    // Clear the draft immediately so the form disappears right away
+    updateTaskDraft(lane.id, null);
+
     await commitLane(lane.id, (current) => ({
       ...current,
       tasks: [
@@ -268,8 +271,6 @@ export function LaneAccordion({ lanes: initialLanes }: { lanes: Lane[] }) {
         },
       ],
     }));
-
-    updateTaskDraft(lane.id, null);
   };
 
   const removeTask = async (laneId: string, taskIndex: number) => {

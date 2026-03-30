@@ -1,8 +1,11 @@
+import fs from "fs";
+import path from "path";
+
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { getCurrentAccess } from "@/lib/access";
-import { loadRoadmapLanes } from "@/lib/roadmap";
+import { lanesManifest, loadRoadmapLanes } from "@/lib/roadmap";
 import { grantAccessFromCheckoutSession } from "@/lib/stripe-access";
 import { LaneAccordion } from "@/components/lane-accordion";
 
@@ -11,6 +14,20 @@ export const dynamic = "force-dynamic";
 type RoadmapPageProps = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
+
+function readLocalInstructions(): Record<string, string> {
+  const result: Record<string, string> = {};
+  const repoRoot = path.resolve(process.cwd(), "..");
+  for (const entry of lanesManifest) {
+    try {
+      const fullPath = path.join(repoRoot, entry.path);
+      result[entry.path] = fs.readFileSync(fullPath, "utf-8");
+    } catch {
+      // file not found — will fall back to remote fetch
+    }
+  }
+  return result;
+}
 
 export default async function RoadmapPage({ searchParams }: RoadmapPageProps) {
   let access = await getCurrentAccess();
@@ -39,7 +56,7 @@ export default async function RoadmapPage({ searchParams }: RoadmapPageProps) {
     redirect("/upgrade");
   }
 
-  const lanes = await loadRoadmapLanes();
+  const lanes = await loadRoadmapLanes(readLocalInstructions());
 
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(217,108,63,0.18),_transparent_32%),radial-gradient(circle_at_top_right,_rgba(36,92,79,0.18),_transparent_30%),linear-gradient(180deg,#fcf7ef_0%,#f4efe7_58%,#efe7db_100%)]">
