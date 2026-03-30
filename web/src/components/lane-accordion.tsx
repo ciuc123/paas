@@ -220,17 +220,14 @@ export function LaneAccordion({ lanes: initialLanes }: { lanes: Lane[] }) {
     updater: (lane: Lane) => Lane,
     options?: { persist?: boolean },
   ) => {
-    let nextLanesSnapshot: Lane[] = [];
+    const nextLanes = lanes.map((lane) =>
+      lane.id === laneId ? updater(lane) : lane,
+    );
 
-    setLanes((current) => {
-      nextLanesSnapshot = current.map((lane) =>
-        lane.id === laneId ? updater(lane) : lane,
-      );
-      return nextLanesSnapshot;
-    });
+    setLanes(nextLanes);
 
     if (options?.persist ?? false) {
-      await save(nextLanesSnapshot);
+      await save(nextLanes);
     }
   };
 
