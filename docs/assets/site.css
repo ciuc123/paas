@@ -253,6 +253,36 @@ h3 {
   align-items: flex-start;
 }
 
+.task-content-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 10px;
+}
+
+.task-content-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--accent-2);
+  text-decoration: none;
+  letter-spacing: 0.01em;
+}
+
+.task-content-link:hover {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.task-content-icon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
 .auth-stack,
 .state-stack {
   display: grid;

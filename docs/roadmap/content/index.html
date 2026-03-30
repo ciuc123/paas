@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>paas — generated output</title>
+    <meta
+      name="description"
+      content="Rendered view of a generated output document from the paas roadmap."
+    />
+    <link rel="stylesheet" href="../../assets/site.css" />
+    <link rel="stylesheet" href="../../assets/content.css" />
+    <script src="../../assets/clerk-config.js"></script>
+  </head>
+  <body>
+    <main id="locked-shell" class="main-strip">
+      <section class="panel hero-panel">
+        <p class="eyebrow">paas roadmap output</p>
+        <h1>Sign in to view generated content.</h1>
+        <p class="lead">
+          This page renders a generated output document from the roadmap.
+          Authentication is required before content is loaded.
+        </p>
+        <div class="meta">
+          <span class="chip">Route: /roadmap/content/</span>
+          <span class="chip" id="auth-status">Checking access...</span>
+        </div>
+        <div class="cta-row">
+          <a class="cta-link" href="../">Back to roadmap</a>
+        </div>
+      </section>
+
+      <section id="signed-out-shell" class="panel auth-panel">
+        <div class="panel-header">
+          <p class="eyebrow">Authentication</p>
+          <h2>Clerk gate</h2>
+          <p class="panel-copy">
+            Use the sign-in form below to unlock the content viewer.
+          </p>
+        </div>
+        <div id="content-auth-mount" class="sign-in-host"></div>
+      </section>
+    </main>
+
+    <main id="content-shell" class="main-strip" hidden>
+      <section class="panel hero-panel">
+        <div class="panel-header inline">
+          <div>
+            <p class="eyebrow">generated output</p>
+            <h1 id="content-title">Loading…</h1>
+            <p id="content-path-chip" class="panel-copy"></p>
+          </div>
+          <div id="content-user-button"></div>
+        </div>
+        <div class="cta-row">
+          <a class="cta-link" href="../">Back to roadmap</a>
+          <a id="raw-link" class="cta-link" href="#" target="_blank" rel="noopener noreferrer">View raw</a>
+        </div>
+      </section>
+
+      <section id="loading-state" class="panel loading info">
+        Loading content from the repository…
+      </section>
+
+      <section id="error-state" class="panel error" hidden></section>
+
+      <article id="content-body" class="panel content-article" hidden></article>
+    </main>
+
+    <script type="module">
+      import { initializeClerk } from '../../assets/clerk-auth.js';
+
+      const repoOwner = 'ciuc123';
+      const repoName = 'paas';
+      const repoBranch = 'main';
+
+      function rawUrl(path) {
+        return `https://raw.githubusercontent.com/${repoOwner}/${repoName}/${repoBranch}/${path}`;
+      }
+
+      function getPathParam() {
+        const params = new URLSearchParams(window.location.search);
+        return params.get('path');
+      }
+
+      function escapeHtml(text) {
+        return text
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+      }
+
+      function markdownToHtml(markdown) {
+        let html = escapeHtml(markdown);
+
+        // headings
+        html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+        html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+        html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+
+        // bold and italic
+        html = html.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
+        html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+        html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+
+        // inline code
+        html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+
+        // horizontal rule
+        html = html.replace(/^---$/gm, '<hr>');
+
+        // unordered list items
+        html = html.replace(/^- (.+)$/gm, '<li>$1</li>');
+        html = html.replace(/(<li>[^<]*<\/li>\n?)+/g, (match) => `<ul>${match}</ul>`);
+
+        // paragraphs: double newlines
+        html = html.replace(/\n\n+/g, '</p><p>');
+        html = `<p>${html}</p>`;
+
+        // clean up empty paragraphs and heading wraps
+        html = html.replace(/<p>(<h[1-6]>)/g, '$1');
+        html = html.replace(/(<\/h[1-6]>)<\/p>/g, '$1');
+        html = html.replace(/<p>(<ul>)/g, '$1');
+        html = html.replace(/(<\/ul>)<\/p>/g, '$1');
+        html = html.replace(/<p>(<hr>)<\/p>/g, '$1');
+        html = html.replace(/<p>\s*<\/p>/g, '');
+
+        return html;
+      }
+
+      async function loadContent(contentPath) {
+        const loadingState = document.getElementById('loading-state');
+        const errorState = document.getElementById('error-state');
+        const contentBody = document.getElementById('content-body');
+        const contentTitle = document.getElementById('content-title');
+        const contentPathChip = document.getElementById('content-path-chip');
+        const rawLink = document.getElementById('raw-link');
+
+        loadingState.hidden = false;
+        errorState.hidden = true;
+        contentBody.hidden = true;
+
+        const url = rawUrl(contentPath);
+        rawLink.href = url;
+        contentPathChip.textContent = contentPath;
+
+        try {
+          const response = await fetch(url);
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+          }
+          const markdown = await response.text();
+
+          const firstHeading = markdown.match(/^#\s+(.+)$/m);
+          contentTitle.textContent = firstHeading
+            ? firstHeading[1]
+            : contentPath.split('/').pop().replace(/\.md$/, '');
+
+          contentBody.innerHTML = markdownToHtml(markdown);
+          loadingState.hidden = true;
+          contentBody.hidden = false;
+        } catch (error) {
+          loadingState.hidden = true;
+          errorState.hidden = false;
+          errorState.textContent = `Could not load content from ${contentPath}: ${error.message}`;
+        }
+      }
+
+      await initializeClerk({
+        statusId: 'auth-status',
+        signInHostId: 'content-auth-mount',
+        userButtonId: 'content-user-button',
+        signedInShellId: 'content-shell',
+        signedOutShellId: 'signed-out-shell',
+        afterSignInUrl: window.location.href,
+        afterSignUpUrl: window.location.href,
+        afterSignOutUrl: '/',
+        onSignedIn: async () => {
+          document.getElementById('locked-shell').hidden = true;
+          const contentPath = getPathParam();
+          if (!contentPath || !contentPath.endsWith('.md')) {
+            window.location.href = '../';
+            return;
+          }
+          await loadContent(contentPath);
+        }
+      });
+    </script>
+  </body>
+</html>
