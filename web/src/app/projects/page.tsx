@@ -2,7 +2,6 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { getCurrentAccess } from "@/lib/access";
-import { loadRoadmapLanes } from "@/lib/roadmap";
 import { ProjectsList } from "@/components/projects-list";
 
 export const dynamic = "force-dynamic";
@@ -13,8 +12,6 @@ export default async function ProjectsPage() {
   if (!access.hasPaidAccess) {
     redirect("/upgrade");
   }
-
-  const lanes = await loadRoadmapLanes();
 
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(217,108,63,0.18),_transparent_32%),radial-gradient(circle_at_top_right,_rgba(36,92,79,0.18),_transparent_30%),linear-gradient(180deg,#fcf7ef_0%,#f4efe7_58%,#efe7db_100%)]">
@@ -27,9 +24,9 @@ export default async function ProjectsPage() {
             Projects
           </h1>
           <p className="mt-4 text-[#5f584f]">
-            Create a project and the roadmap swimlanes are seeded as your
-            starting point. Edit tasks, then hit Generate to run AI across your
-            entire roadmap.
+            Describe your project idea and we&apos;ll generate a custom roadmap
+            of swimlanes and tasks as your starting point. Edit tasks inline,
+            then hit Generate to run AI across your entire roadmap.
           </p>
           <div className="mt-6">
             <Link
@@ -41,7 +38,7 @@ export default async function ProjectsPage() {
           </div>
         </section>
 
-        <ProjectsList lanes={lanes} />
+        <ProjectsList />
       </div>
     </main>
   );
