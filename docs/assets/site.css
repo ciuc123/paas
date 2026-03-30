@@ -87,7 +87,7 @@ code {
 }
 
 .diagram-panel {
-  width: min(calc(100vw - 48px), 1180px);
+  width: min(calc(100vw - 48px), 560px);
 }
 
 .legend-panel {

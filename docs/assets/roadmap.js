@@ -1,5 +1,3 @@
-import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
-
 const repoOwner = 'ciuc123';
 const repoName = 'paas';
 const repoBranch = 'main';
@@ -25,27 +23,31 @@ function rawUrl(path) {
 
 function normalizeStatus(value) {
   const normalized = value.trim().toLowerCase().replace(/\s+/g, '_');
-  if (!statusLabels[normalized]) {
+  if (!['done', 'in_progress', 'blocked', 'not_started'].includes(normalized)) {
     throw new Error(`Unsupported status value: ${value}`);
   }
   return normalized;
 }
 
 function parseTaskTable(markdown) {
-  const match = markdown.match(/## Task Status\s+([\s\S]*?)(?:\n##\s|$)/);
+  const match = markdown.match(/##\s+Task Status\s+([\s\S]*?)(?=\n##\s|\n##$|$)/i);
   if (!match) {
     throw new Error('Missing Task Status section');
   }
 
-  const rows = match[1]
+  const lines = match[1]
     .split('\n')
     .map((line) => line.trim())
     .filter((line) => line.startsWith('|'));
 
-  return rows
-    .slice(2)
+  return lines
     .map((line) => line.split('|').slice(1, -1).map((cell) => cell.trim()))
     .filter((cells) => cells.length >= 3)
+    .filter((cells) => {
+      const first = (cells[0] ?? '').toLowerCase();
+      const second = (cells[1] ?? '').toLowerCase();
+      return first !== 'task' && second !== 'status' && !/^[-:\s]+$/.test(cells.join(''));
+    })
     .map(([task, status, notes, content]) => ({
       task,
       status: normalizeStatus(status),
@@ -56,51 +58,10 @@ function parseTaskTable(markdown) {
 
 function aggregateStatus(tasks) {
   const statuses = new Set(tasks.map((task) => task.status));
-  if (statuses.has('blocked')) {
-    return 'blocked';
-  }
-  if (statuses.size === 1 && statuses.has('done')) {
-    return 'done';
-  }
-  if (statuses.has('in_progress')) {
-    return 'in_progress';
-  }
-  if (statuses.size === 1 && statuses.has('not_started')) {
-    return 'not_started';
-  }
-  return 'in_progress';
-}
-
-function buildMermaid(lanes) {
-  const lines = [
-    'flowchart LR',
-    'classDef done fill:#d1fae5,stroke:#047857,color:#064e3b,stroke-width:2px;',
-    'classDef in_progress fill:#fef3c7,stroke:#b45309,color:#78350f,stroke-width:2px;',
-    'classDef blocked fill:#fee2e2,stroke:#b91c1c,color:#7f1d1d,stroke-width:2px;',
-    'classDef not_started fill:#e5e7eb,stroke:#4b5563,color:#111827,stroke-width:2px;'
-  ];
-
-  lanes.forEach((lane) => {
-    const counts = {
-      done: 0,
-      in_progress: 0,
-      blocked: 0,
-      not_started: 0
-    };
-
-    lane.tasks.forEach((task) => {
-      counts[task.status] += 1;
-    });
-
-    const label = `${lane.label}\\n${statusLabels[lane.aggregateStatus]}\\n${counts.done} done / ${counts.in_progress} in progress / ${counts.blocked} blocked / ${counts.not_started} not started`;
-    lines.push(`${lane.id}["${label}"]:::${lane.aggregateStatus}`);
-  });
-
-  for (let index = 0; index < lanes.length - 1; index += 1) {
-    lines.push(`${lanes[index].id} --> ${lanes[index + 1].id}`);
-  }
-
-  return lines.join('\n');
+  if (statuses.has('blocked')) return 'blocked';
+  if (statuses.has('in_progress')) return 'in_progress';
+  if (statuses.has('not_started')) return 'not_started';
+  return 'done';
 }
 
 function renderSnapshot(lanes, textId, listId) {
@@ -183,16 +144,6 @@ function renderLaneStrip(lanes, stripId) {
   });
 }
 
-async function renderDiagram(markup, diagramId) {
-  const container = document.getElementById(diagramId);
-  const element = document.createElement('pre');
-  element.className = 'mermaid';
-  element.textContent = markup;
-  container.innerHTML = '';
-  container.appendChild(element);
-  await mermaid.run({ nodes: [element] });
-}
-
 function setRefreshChip(refreshChipId, message) {
   const chip = document.getElementById(refreshChipId);
   if (chip) {
@@ -238,27 +189,8 @@ async function loadStatuses() {
   }));
 }
 
-mermaid.initialize({
-  startOnLoad: false,
-  theme: 'base',
-  themeVariables: {
-    background: '#fffdf8',
-    primaryColor: '#fffdf8',
-    primaryTextColor: '#1d1a17',
-    primaryBorderColor: '#b89c78',
-    lineColor: '#8b7357',
-    fontFamily: 'Iowan Old Style, Palatino Linotype, Book Antiqua, Georgia, serif'
-  },
-  flowchart: {
-    curve: 'basis',
-    useMaxWidth: false,
-    htmlLabels: true
-  }
-});
-
 export async function loadRoadmap(options) {
   const {
-    diagramId,
     snapshotTextId,
     snapshotListId,
     laneStripId,
@@ -274,7 +206,6 @@ export async function loadRoadmap(options) {
 
   try {
     const lanes = await loadStatuses();
-    await renderDiagram(buildMermaid(lanes), diagramId);
     renderSnapshot(lanes, snapshotTextId, snapshotListId);
     renderLaneStrip(lanes, laneStripId);
     loadingState.hidden = true;

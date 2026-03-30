@@ -98,27 +98,19 @@
       <section class="panel diagram-panel">
         <div class="panel-header inline">
           <div>
-            <p class="eyebrow">Roadmap graph</p>
-            <h2>Mermaid diagram</h2>
-            <p class="panel-copy">
-              Lane status is fetched live on each load and rendered into a left-to-right diagram.
+            <p class="eyebrow">Swimlanes</p>
+            <h2>All 12 lanes</h2>
+              <p class="panel-copy">
+              Each lane is read live from the corresponding instruction file on the main branch.
             </p>
           </div>
           <div id="roadmap-user-button"></div>
         </div>
-        <div class="roadmap-frame">
-          <div id="roadmap-diagram"></div>
-        </div>
+        <ul id="snapshot-list" class="status-list"></ul>
+        <p id="snapshot-text" class="panel-copy" style="margin-top:0.75rem"></p>
       </section>
 
-      <section class="panel snapshot-panel info">
-        <div class="panel-header">
-          <p class="eyebrow">Snapshot</p>
-          <h2>Current lane summary</h2>
-          <p id="snapshot-text" class="panel-copy">Loading current lane summary from the instruction files.</p>
-        </div>
-        <ul id="snapshot-list" class="status-list"></ul>
-      </section>
+      <div id="lane-strip" class="panel-strip"></div>
 
       <section class="panel access-panel">
         <div class="panel-header">
@@ -139,7 +131,6 @@
         </ol>
       </section>
 
-      <div id="lane-strip" class="panel-strip"></div>
 
       <section id="loading-state" class="panel loading info">
         Loading live task status from the instruction files on the <code>main</code> branch.
@@ -164,7 +155,6 @@
         onSignedIn: async () => {
           document.getElementById('locked-shell').hidden = true;
           await loadRoadmap({
-            diagramId: 'roadmap-diagram',
             snapshotTextId: 'snapshot-text',
             snapshotListId: 'snapshot-list',
             laneStripId: 'lane-strip',
