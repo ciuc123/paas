@@ -34,6 +34,11 @@ type TaskDraft = {
   contentPath: string;
 };
 
+type LaneLabelEdit = {
+  laneId: string;
+  value: string;
+};
+
 function getActiveLaneIndex(lanes: Lane[]): number {
   const idx = lanes.findIndex((lane) => lane.aggregateStatus !== "done");
   return idx === -1 ? 0 : idx;
@@ -188,6 +193,7 @@ export function LaneAccordion({ lanes: initialLanes }: { lanes: Lane[] }) {
   const [taskDrafts, setTaskDrafts] = useState<Record<string, TaskDraft | null>>(
     {},
   );
+  const [laneLabelEdit, setLaneLabelEdit] = useState<LaneLabelEdit | null>(null);
 
   useEffect(() => {
     const saved = loadEditableRoadmap();
@@ -342,7 +348,7 @@ export function LaneAccordion({ lanes: initialLanes }: { lanes: Lane[] }) {
               className="flex w-full items-center justify-between gap-4 p-5 text-left"
               aria-expanded={isOpen}
             >
-              <div className="flex items-center gap-3 min-w-0">
+              <div className="flex items-center gap-3 min-w-0 flex-1">
                 <span
                   className={`mt-0.5 h-2 w-2 shrink-0 rounded-full ${
                     isActive
@@ -352,13 +358,19 @@ export function LaneAccordion({ lanes: initialLanes }: { lanes: Lane[] }) {
                         : "bg-[#312a22]/20"
                   }`}
                 />
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                   <p className="text-xs uppercase tracking-[0.18em] text-[#245c4f]">
                     {isActive ? "active lane" : `lane ${index + 1}`}
                   </p>
-                  <h2 className="mt-0.5 truncate text-lg text-[#1d1a17]">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setLaneLabelEdit({ laneId: lane.id, value: lane.label });
+                    }}
+                    className="mt-0.5 truncate text-lg text-[#1d1a17] hover:underline hover:underline-offset-2 focus:outline-none focus:ring-2 focus:ring-[#245c4f]/40 rounded text-left w-full"
+                  >
                     {lane.label}
-                  </h2>
+                  </button>
                 </div>
               </div>
               <div className="flex shrink-0 items-center gap-3">
@@ -386,18 +398,57 @@ export function LaneAccordion({ lanes: initialLanes }: { lanes: Lane[] }) {
 
             {isOpen && (
               <div className="space-y-4 border-t border-[#312a22]/10 px-5 pb-5 pt-4">
-                <input
-                  value={lane.label}
-                  onChange={(event) =>
-                    updateLaneLocally(lane.id, (current) => ({
-                      ...current,
-                      label: event.target.value,
-                    }))
-                  }
-                  onBlur={() => void commitLane(lane.id, (current) => current)}
-                  placeholder="Lane name"
-                  className="w-full rounded-xl border border-[#312a22]/15 bg-white px-3 py-2 text-sm font-semibold text-[#1d1a17] outline-none focus:border-[#245c4f]/40 focus:ring-2 focus:ring-[#245c4f]/20"
-                />
+                {laneLabelEdit?.laneId === lane.id ? (
+                  <div className="flex gap-2">
+                    <input
+                      autoFocus
+                      type="text"
+                      value={laneLabelEdit.value}
+                      onChange={(e) =>
+                        setLaneLabelEdit({
+                          ...laneLabelEdit,
+                          value: e.target.value,
+                        })
+                      }
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          void commitLane(lane.id, (current) => ({
+                            ...current,
+                            label: laneLabelEdit.value.trim(),
+                          }));
+                          setLaneLabelEdit(null);
+                        }
+                        if (e.key === "Escape") {
+                          e.preventDefault();
+                          setLaneLabelEdit(null);
+                        }
+                      }}
+                      placeholder="Lane name"
+                      className="flex-1 rounded-xl border border-[#245c4f]/40 bg-white px-3 py-2 text-sm font-semibold text-[#1d1a17] outline-none focus:ring-2 focus:ring-[#245c4f]/20"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        void commitLane(lane.id, (current) => ({
+                          ...current,
+                          label: laneLabelEdit.value.trim(),
+                        }));
+                        setLaneLabelEdit(null);
+                      }}
+                      className="rounded-full bg-[#245c4f] px-4 py-2 text-sm font-semibold text-[#fff8f2] transition hover:bg-[#1f4f44]"
+                    >
+                      Save
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setLaneLabelEdit(null)}
+                      className="rounded-full border border-[#312a22]/15 bg-white px-4 py-2 text-sm text-[#1d1a17] transition hover:bg-[#f8f3eb]"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                ) : null}
 
                 <div className="space-y-3">
                   {lane.tasks.map((task, taskIndex) => (
