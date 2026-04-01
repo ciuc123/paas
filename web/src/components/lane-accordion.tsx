@@ -301,6 +301,31 @@ export function LaneAccordion({ lanes: initialLanes }: { lanes: Lane[] }) {
     await save(nextLanes);
   };
 
+  const startLaneLabelEdit = (lane: Lane) => {
+    setLaneLabelEdit({ laneId: lane.id, value: lane.label });
+    setOpenIndex(null);
+  };
+
+  const saveLaneLabelEdit = async (lane: Lane) => {
+    if (laneLabelEdit?.laneId !== lane.id) return;
+
+    const nextLabel = laneLabelEdit.value.trim();
+    if (!nextLabel) {
+      setSaveMessage("Lane name is required");
+      return;
+    }
+
+    await commitLane(lane.id, (current) => ({
+      ...current,
+      label: nextLabel,
+    }));
+    setLaneLabelEdit(null);
+  };
+
+  const cancelLaneLabelEdit = () => {
+    setLaneLabelEdit(null);
+  };
+
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#312a22]/15 bg-[#fffaf2]/88 px-5 py-4 shadow-[0_4px_16px_rgba(68,49,31,0.08)]">
@@ -333,6 +358,9 @@ export function LaneAccordion({ lanes: initialLanes }: { lanes: Lane[] }) {
         const isActive = index === activeLaneIndex;
         const allDone = lane.aggregateStatus === "done";
         const taskDraft = taskDrafts[lane.id];
+        const isEditingLaneLabel = laneLabelEdit?.laneId === lane.id;
+        const currentLaneLabelEdit = isEditingLaneLabel ? laneLabelEdit : null;
+        const showTaskPanel = isOpen && !isEditingLaneLabel;
 
         return (
           <div
@@ -343,12 +371,14 @@ export function LaneAccordion({ lanes: initialLanes }: { lanes: Lane[] }) {
                 : "border-[#312a22]/15 bg-[#fffaf2]/88"
             }`}
           >
-            <button
-              onClick={() => setOpenIndex(isOpen ? null : index)}
-              className="flex w-full items-center justify-between gap-4 p-5 text-left"
-              aria-expanded={isOpen}
-            >
-              <div className="flex items-center gap-3 min-w-0 flex-1">
+            <div className="flex items-center justify-between gap-4 p-5">
+              <button
+                type="button"
+                onClick={() => setOpenIndex(isOpen ? null : index)}
+                className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                aria-expanded={isOpen}
+                aria-controls={`lane-panel-${lane.id}`}
+              >
                 <span
                   className={`mt-0.5 h-2 w-2 shrink-0 rounded-full ${
                     isActive
@@ -362,18 +392,42 @@ export function LaneAccordion({ lanes: initialLanes }: { lanes: Lane[] }) {
                   <p className="text-xs uppercase tracking-[0.18em] text-[#245c4f]">
                     {isActive ? "active lane" : `lane ${index + 1}`}
                   </p>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setLaneLabelEdit({ laneId: lane.id, value: lane.label });
-                    }}
-                    className="mt-0.5 truncate text-lg text-[#1d1a17] hover:underline hover:underline-offset-2 focus:outline-none focus:ring-2 focus:ring-[#245c4f]/40 rounded text-left w-full"
-                  >
+                  <p className="mt-0.5 truncate text-lg text-[#1d1a17]">
                     {lane.label}
-                  </button>
+                  </p>
                 </div>
-              </div>
+              </button>
+
               <div className="flex shrink-0 items-center gap-3">
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    startLaneLabelEdit(lane);
+                  }}
+                  aria-label={`Edit ${lane.label}`}
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[#312a22]/15 bg-white/75 text-[#5f584f] transition hover:bg-white hover:text-[#1d1a17] focus:outline-none focus:ring-2 focus:ring-[#245c4f]/40"
+                >
+                  <svg
+                    className="h-4 w-4"
+                    viewBox="0 0 20 20"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    aria-hidden="true"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M14.166 2.5a1.768 1.768 0 0 1 2.5 2.5l-8.75 8.75L4.167 15.833l2.083-3.75 7.916-7.583Z"
+                    />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M11.667 5l3.333 3.333"
+                    />
+                  </svg>
+                </button>
                 <span className="rounded-full border border-[#312a22]/15 bg-white/65 px-3 py-1 text-xs uppercase tracking-[0.08em] text-[#1d1a17]">
                   {statusLabels[lane.aggregateStatus]}
                 </span>
@@ -394,62 +448,60 @@ export function LaneAccordion({ lanes: initialLanes }: { lanes: Lane[] }) {
                   />
                 </svg>
               </div>
-            </button>
+            </div>
 
-            {isOpen && (
-              <div className="space-y-4 border-t border-[#312a22]/10 px-5 pb-5 pt-4">
-                {laneLabelEdit?.laneId === lane.id ? (
-                  <div className="flex gap-2">
-                    <input
-                      autoFocus
-                      type="text"
-                      value={laneLabelEdit.value}
-                      onChange={(e) =>
-                        setLaneLabelEdit({
-                          ...laneLabelEdit,
-                          value: e.target.value,
-                        })
+            {isEditingLaneLabel ? (
+              <div className="border-t border-[#312a22]/10 px-5 pb-5 pt-4">
+                <div className="flex gap-2">
+                  <input
+                    autoFocus
+                    type="text"
+                    value={currentLaneLabelEdit?.value ?? ""}
+                    onChange={(e) =>
+                      currentLaneLabelEdit &&
+                      setLaneLabelEdit({
+                        ...currentLaneLabelEdit,
+                        value: e.target.value,
+                      })
+                    }
+                    onKeyDown={(e) => {
+                      if (!currentLaneLabelEdit) return;
+
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        void saveLaneLabelEdit(lane);
                       }
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.preventDefault();
-                          void commitLane(lane.id, (current) => ({
-                            ...current,
-                            label: laneLabelEdit.value.trim(),
-                          }));
-                          setLaneLabelEdit(null);
-                        }
-                        if (e.key === "Escape") {
-                          e.preventDefault();
-                          setLaneLabelEdit(null);
-                        }
-                      }}
-                      placeholder="Lane name"
-                      className="flex-1 rounded-xl border border-[#245c4f]/40 bg-white px-3 py-2 text-sm font-semibold text-[#1d1a17] outline-none focus:ring-2 focus:ring-[#245c4f]/20"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        void commitLane(lane.id, (current) => ({
-                          ...current,
-                          label: laneLabelEdit.value.trim(),
-                        }));
-                        setLaneLabelEdit(null);
-                      }}
-                      className="rounded-full bg-[#245c4f] px-4 py-2 text-sm font-semibold text-[#fff8f2] transition hover:bg-[#1f4f44]"
-                    >
-                      Save
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setLaneLabelEdit(null)}
-                      className="rounded-full border border-[#312a22]/15 bg-white px-4 py-2 text-sm text-[#1d1a17] transition hover:bg-[#f8f3eb]"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                ) : null}
+                      if (e.key === "Escape") {
+                        e.preventDefault();
+                        cancelLaneLabelEdit();
+                      }
+                    }}
+                    placeholder="Lane name"
+                    className="flex-1 rounded-xl border border-[#245c4f]/40 bg-white px-3 py-2 text-sm font-semibold text-[#1d1a17] outline-none focus:ring-2 focus:ring-[#245c4f]/20"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => void saveLaneLabelEdit(lane)}
+                    className="rounded-full bg-[#245c4f] px-4 py-2 text-sm font-semibold text-[#fff8f2] transition hover:bg-[#1f4f44]"
+                  >
+                    Save
+                  </button>
+                  <button
+                    type="button"
+                    onClick={cancelLaneLabelEdit}
+                    className="rounded-full border border-[#312a22]/15 bg-white px-4 py-2 text-sm text-[#1d1a17] transition hover:bg-[#f8f3eb]"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : null}
 
+            {showTaskPanel && (
+              <div
+                id={`lane-panel-${lane.id}`}
+                className="space-y-4 border-t border-[#312a22]/10 px-5 pb-5 pt-4"
+              >
                 <div className="space-y-3">
                   {lane.tasks.map((task, taskIndex) => (
                     <article

@@ -87,16 +87,26 @@ function toProjectLanes(lanes: Array<RawLane | Lane>, preserveStatus = false): P
     id: lane.id,
     label: lane.label,
     ...(lane.path ? { path: lane.path } : {}),
-    tasks: lane.tasks.map((task, index) => {
-      const base = {
+    tasks: lane.tasks.map((task, index): ProjectTask => {
+      const normalizedTask: ProjectTask = {
         id: task.id ?? `task-${index + 1}-${slugify(task.task)}`,
         task: task.task,
-        status: preserveStatus && "status" in task ? task.status : "not_started" as const,
+        status:
+          preserveStatus && "status" in task
+            ? task.status
+            : "not_started",
         notes: task.notes,
       };
-      const withContent = task.contentPath ? { ...base, contentPath: task.contentPath } : base;
-      const withAi = "aiOutput" in task && typeof task.aiOutput === "string" ? { ...withContent, aiOutput: task.aiOutput } : withContent;
-      return withAi;
+
+      if (task.contentPath) {
+        normalizedTask.contentPath = task.contentPath;
+      }
+
+      if ("aiOutput" in task && typeof task.aiOutput === "string") {
+        normalizedTask.aiOutput = task.aiOutput;
+      }
+
+      return normalizedTask;
     }),
   }));
 }
