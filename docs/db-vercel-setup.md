@@ -49,20 +49,88 @@ Neon (Production) setup — step-by-step
 4. Copy the direct URL to Vercel as `DATABASE_URL_DIRECT` (optional, but useful for scripts run through Vercel CLI or one-off admin instances).
 5. Add other required secrets in Vercel (Clerk, Stripe, etc.).
 
-Vercel settings (Project → Settings → Environment Variables):
-- Add `DATABASE_URL` (Encrypted secret) — Neon pooled URL
-- Add `DATABASE_URL_DIRECT` (Encrypted secret) — Neon direct URL
-- Add Clerk and Stripe env entries as in `web/.env.local`.
+### Do I need auth to create Neon or to use the connection strings?
 
-Production migration recommendation
-- Run migrations from a CI job or an admin instance with `DATABASE_URL_DIRECT` set so migrations run against the direct connection.
-- Example (manual/admin machine):
+- Short answer: yes — you need a Neon account (or team access) to create and manage databases. Neon requires you to sign up (email/OAuth) and to authenticate in the dashboard. However, once the database is created the runtime app does not perform Neon-level auth: the app only needs the connection strings (pooled/direct) which act as the credentials.
+
+- Details and automation:
+  - Neon Dashboard: sign up and create a project/branch. A user with Dashboard access can view connection strings and run SQL (including enabling extensions such as `pgcrypto`).
+  - Neon API & Service Accounts: for automation (CI, infra-as-code) you can create Neon API keys or service accounts. Store those API keys securely — they are not required by the running app, only for programmatic management of Neon from CI.
+  - Team / Access Control: add team members in Neon to manage DBs without sharing personal accounts. Use role separation for production access.
+
+If you only want to run your app against the DB, you do not need to keep the Neon dashboard open after you copy connection strings into Vercel. But for migrations or enabling DB extensions you will need an account with sufficient privileges (or a direct connection URL that includes an admin user).
+
+**Tip:** enable the `pgcrypto` extension from the Neon SQL editor (required by the initial migration):
+
+```sql
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+```
+
+This requires a Neon user with permission to run `CREATE EXTENSION`.
+
+---
+
+Vercel: step‑by‑step (UI and CLI)
+
+This section shows the exact Vercel actions to add your Neon connection strings and related secrets, and how to use them safely for deploys and migrations.
+
+1) Add environment variables via the Vercel Dashboard (recommended)
+
+  a. Open your Vercel project at https://vercel.com/dashboard.
+  b. Go to Settings → Environment Variables.
+  c. Click "Add" and fill in the form:
+     - Name: `DATABASE_URL`
+     - Value: (paste the Neon pooled connection string)
+     - Environment: select `Production` (and optionally add the same variable for `Preview` and `Development` if needed)
+     - Click **Save**.
+  d. Repeat for `DATABASE_URL_DIRECT` (paste the Neon direct connection string). You can set this for `Production` as well, but limit where you expose it—prefer storing it only in secrets accessible to migration runners.
+  e. Add other secrets: `CLERK_SECRET_KEY`, `STRIPE_SECRET_KEY`, `STRIPE_PRICE_ID`, `STRIPE_WEBHOOK_SECRET`, etc.
+
+2) Add environment variables via Vercel CLI (alternate)
+
+  - Install/verify `vercel` and run:
+
+```bash
+# login if needed
+vercel login
+
+# add pooled URL (production)
+vercel env add DATABASE_URL production
+
+# add direct URL (production)
+vercel env add DATABASE_URL_DIRECT production
+```
+
+Follow the prompts and paste the values when asked. Repeat for other secrets.
+
+3) Store migration secrets in GitHub (for CI-run migrations)
+
+  - Go to your GitHub repository → Settings → Secrets and variables → Actions → New repository secret.
+  - Add `DATABASE_URL` and `DATABASE_URL_DIRECT` (or a single `PROD_DATABASE_URL_DIRECT`) so your CI job can run migrations.
+
+4) Deploy your app in Vercel
+
+  - With Vercel Git integration enabled, push to `main` (or your production branch). Vercel will deploy automatically and your app will pick up `DATABASE_URL` from the project settings.
+  - You can also run `vercel --prod` from the CLI to create a production deployment.
+
+5) Run migrations (recommended patterns)
+
+  - Manual/admin run (safe): run migrations from your admin machine with `DATABASE_URL_DIRECT` in the environment:
 
 ```bash
 DATABASE_URL="<pooled-url>" DATABASE_URL_DIRECT="<direct-url>" npm run db:migrate
 ```
 
-This repo ships a checked-in SQL migration at `web/drizzle/0000_init.sql` and a small migration runner `web/scripts/migrate.ts` which applies `.sql` files under `web/drizzle/` in order.
+  - CI-run migration (recommended if you want automation): use a GitHub Actions job that uses `DATABASE_URL_DIRECT` from Secrets, then runs `npm run db:migrate`. See the example in this doc.
+
+6) Running one-off commands on Vercel instances (not recommended for migrations)
+
+  - Vercel supports one-off serverless invocations, but we recommend running schema changes via `DATABASE_URL_DIRECT` from CI or an admin shell rather than in build hooks or serverless runtime.
+
+7) Post-deploy verification
+
+  - After deploy, verify the app can connect and observe the app logs for DB connection errors.
+  - Use the Neon dashboard or `psql` against the direct URL to inspect and verify schema/tables.
 
 ---
 
@@ -263,4 +331,3 @@ If you want, I can also:
 - Convert the `seed.ts` to be fully idempotent for projects (seed by project slug/name).
 
 Pick the next step and I’ll implement it in the repo.
-
