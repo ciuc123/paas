@@ -8,11 +8,27 @@ The live status source of truth is `.github/instructions/*.instructions.md`.
 
 The server-enforced paid-access migration now lives in [web](web).
 
-It includes Clerk auth, Stripe checkout/webhooks, and protected roadmap access suitable for deployment on Vercel.
+It includes Clerk auth, Stripe checkout/webhooks, protected roadmap access, and a Neon-ready Postgres schema suitable for deployment on Vercel.
 
-Start from [web/README.md](web/README.md) and [web/.env.example](web/.env.example).
+Start from [web/README.md](web/README.md).
 
-For local containers, the repository now includes [docker-compose.yml](docker-compose.yml) plus [web/Dockerfile](web/Dockerfile). Use `docker compose up --build web` for the app only or `docker compose --profile stripe up --build` to include the Stripe CLI webhook forwarder.
+For local containers, the repository now includes [docker-compose.yml](docker-compose.yml) plus [web/Dockerfile](web/Dockerfile).
+
+### Preferred local workflow
+
+Start the app and local Postgres together:
+
+```bash
+docker compose up --build -d postgres web
+```
+
+Use the running app container for one-off commands:
+
+```bash
+docker exec -it paas-web-1 sh -lc "cd /app && npm run db:migrate"
+docker exec -it paas-web-1 sh -lc "cd /app && npm run db:seed"
+docker exec -it paas-web-1 sh -lc "cd /app && npm run lint"
+```
 
 ## Online Roadmap
 

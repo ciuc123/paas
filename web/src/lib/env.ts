@@ -1,3 +1,5 @@
+/// <reference types="node" />
+
 function requireEnv(name: string): string {
   const value = process.env[name];
   if (!value) {
@@ -31,4 +33,12 @@ export function getStripeWebhookSecret(): string {
   }
 
   return requireEnv("STRIPE_WEBHOOK_SECRET");
+}
+
+export function getDatabaseUrl(): string {
+  return requireEnv("DATABASE_URL");
+}
+
+export function getDirectDatabaseUrl(): string {
+  return process.env.DATABASE_URL_DIRECT || getDatabaseUrl();
 }
