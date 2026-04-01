@@ -1,19 +1,193 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f4efe7;
-  --foreground: #1d1a17;
+  /* Windows 2000 color palette */
+  --background: #008080; /* Classic Win2k teal desktop */
+  --foreground: #000000;
+
+  /* Win2k UI tokens */
+  --win-bg: #d4d0c8;          /* Classic silver/gray window background */
+  --win-title-from: #0a246a;  /* Title bar gradient start (deep blue) */
+  --win-title-to: #a6caf0;    /* Title bar gradient end (light blue) */
+  --win-title-text: #ffffff;
+  --win-border-light: #ffffff;
+  --win-border-dark: #808080;
+  --win-border-darker: #404040;
+  --win-text: #000000;
+  --win-btn-face: #d4d0c8;
+  --win-menubar-bg: #d4d0c8;
+  --win-blue: #0a246a;
+  --win-inset-bg: #ffffff;
+  --win-disabled: #808080;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-spectral);
+  --font-sans: var(--font-tahoma);
   --font-mono: var(--font-plex-mono);
+}
+
+* {
+  box-sizing: border-box;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-spectral), Georgia, serif;
+  font-family: 'Tahoma', 'MS Sans Serif', 'Arial', sans-serif;
+  font-size: 11px;
+}
+
+/* Win2k 3D raised border (button / window edge) */
+.win-raised {
+  border-style: solid;
+  border-width: 2px;
+  border-color: var(--win-border-light) var(--win-border-darker) var(--win-border-darker) var(--win-border-light);
+}
+
+/* Win2k 3D sunken border (input / inset panel) */
+.win-sunken {
+  border-style: solid;
+  border-width: 2px;
+  border-color: var(--win-border-dark) var(--win-border-light) var(--win-border-light) var(--win-border-dark);
+}
+
+/* Classic Win2k window outer border */
+.win-window {
+  background: var(--win-bg);
+  border-style: solid;
+  border-width: 3px;
+  border-color: var(--win-border-light) var(--win-border-darker) var(--win-border-darker) var(--win-border-light);
+  box-shadow: 2px 2px 0 0 #000000;
+}
+
+/* Title bar gradient */
+.win-titlebar {
+  background: linear-gradient(90deg, var(--win-title-from) 0%, var(--win-title-to) 100%);
+  color: var(--win-title-text);
+  font-weight: bold;
+  font-size: 12px;
+  padding: 3px 4px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  user-select: none;
+}
+
+/* Win2k button */
+.win-btn {
+  background: var(--win-btn-face);
+  color: var(--win-text);
+  font-family: 'Tahoma', 'MS Sans Serif', sans-serif;
+  font-size: 11px;
+  padding: 3px 12px;
+  border-style: solid;
+  border-width: 2px;
+  border-color: var(--win-border-light) var(--win-border-darker) var(--win-border-darker) var(--win-border-light);
+  cursor: pointer;
+  min-width: 75px;
+  text-align: center;
+}
+
+.win-btn:active {
+  border-color: var(--win-border-darker) var(--win-border-light) var(--win-border-light) var(--win-border-darker);
+  padding: 4px 11px 2px 13px;
+}
+
+.win-btn:focus {
+  outline: 1px dotted #000;
+  outline-offset: -4px;
+}
+
+/* Title bar control buttons (min/max/close) */
+.win-ctrl-btn {
+  width: 16px;
+  height: 14px;
+  background: var(--win-btn-face);
+  border-style: solid;
+  border-width: 2px;
+  border-color: var(--win-border-light) var(--win-border-darker) var(--win-border-darker) var(--win-border-light);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: bold;
+  cursor: pointer;
+  color: #000;
+  margin-left: 2px;
+  flex-shrink: 0;
+}
+
+.win-ctrl-btn:active {
+  border-color: var(--win-border-darker) var(--win-border-light) var(--win-border-light) var(--win-border-darker);
+}
+
+/* Taskbar */
+.win-taskbar {
+  background: var(--win-bg);
+  border-top: 2px solid var(--win-border-light);
+  height: 30px;
+  display: flex;
+  align-items: center;
+  padding: 0 4px;
+  gap: 4px;
+}
+
+/* Start button */
+.win-start-btn {
+  background: var(--win-btn-face);
+  border-style: solid;
+  border-width: 2px;
+  border-color: var(--win-border-light) var(--win-border-darker) var(--win-border-darker) var(--win-border-light);
+  font-family: 'Tahoma', sans-serif;
+  font-size: 12px;
+  font-weight: bold;
+  padding: 1px 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Menu bar */
+.win-menubar {
+  background: var(--win-bg);
+  border-bottom: 1px solid var(--win-border-dark);
+  display: flex;
+  align-items: center;
+  padding: 1px 2px;
+  gap: 0;
+}
+
+.win-menu-item {
+  font-size: 11px;
+  padding: 2px 8px;
+  cursor: pointer;
+  color: #000;
+}
+
+.win-menu-item:hover {
+  background: var(--win-title-from);
+  color: #fff;
+}
+
+/* Separator */
+.win-separator {
+  height: 1px;
+  background: var(--win-border-dark);
+  border-bottom: 1px solid var(--win-border-light);
+  margin: 4px 2px;
+}
+
+/* Status bar */
+.win-statusbar {
+  background: var(--win-bg);
+  border-top: 2px solid var(--win-border-dark);
+  border-right: none;
+  padding: 2px 6px;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
