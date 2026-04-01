@@ -1,7 +1,9 @@
 import {
+  DEFAULT_ROADMAP_ID,
   buildProjectSnapshotFromRoadmap,
   type Lane,
   loadEditableRoadmap,
+  loadRoadmapLanesById,
 } from "@/lib/roadmap";
 
 export type ProjectTask = {
@@ -26,6 +28,7 @@ export type Project = {
   description: string;
   createdAt: string;
   updatedAt: string;
+  roadmapId: string;
   lanes: ProjectLane[];
   generateStatus: "idle" | "generating" | "done";
 };
@@ -98,139 +101,6 @@ function toProjectLanes(lanes: Array<RawLane | Lane>, preserveStatus = false): P
   }));
 }
 
-function buildLanes(name: string, keywords: string[]): RawLane[] {
-  const primary = keywords[0] ?? "product";
-  const secondary = keywords[1] ?? "platform";
-  const audience = keywords[2] ?? "users";
-
-  return [
-    {
-      id: "discovery",
-      label: "Research & Discovery",
-      tasks: [
-        {
-          task: `Define target audience for ${primary}`,
-          notes: `Identify who benefits most from ${name} and what they need from this solution.`,
-        },
-        {
-          task: `Research existing ${primary} solutions and market gaps`,
-          notes: "Map competitors and substitutes to find your differentiation angle.",
-        },
-        {
-          task: `Conduct 5 user interviews about ${secondary} needs`,
-          notes: `Talk directly to potential ${audience}. Capture pain points in their own words.`,
-        },
-        {
-          task: `Synthesize findings into a ${primary} opportunity brief`,
-          notes: "Distill interview notes into the top 3 opportunities worth building.",
-        },
-      ],
-    },
-    {
-      id: "strategy",
-      label: "Strategy & Planning",
-      tasks: [
-        {
-          task: `Write a core value statement for ${name}`,
-          notes: "One sentence: who it helps, what it does, and why it matters.",
-        },
-        {
-          task: `Select the first 3 use cases for ${primary}`,
-          notes: "Keep scope narrow. Pick the use cases with highest impact and lowest complexity.",
-        },
-        {
-          task: `Decide the pricing model for ${secondary}`,
-          notes: "Choose between per-seat, per-use, subscription, or one-time payment before building.",
-        },
-        {
-          task: "Draft the technical blueprint and stack",
-          notes: "Document hosting, auth, storage, and AI provider choices before writing any code.",
-        },
-      ],
-    },
-    {
-      id: "design",
-      label: "Design & UX",
-      tasks: [
-        {
-          task: `Map the end-to-end ${primary} user journey`,
-          notes: "Trace every step from landing page through the first value moment.",
-        },
-        {
-          task: `Create wireframes for the main ${name} screens`,
-          notes: "Cover dashboard, onboarding, and the core product flow.",
-        },
-        {
-          task: `Define tone of voice and copy guidelines for ${audience}`,
-          notes: "Establish non-technical, friendly language that matches your audience.",
-        },
-        {
-          task: `Validate wireframes with 2–3 real ${primary} users`,
-          notes: "Collect feedback early before investing in development.",
-        },
-      ],
-    },
-    {
-      id: "build",
-      label: "Build & Develop",
-      tasks: [
-        {
-          task: `Set up the ${name} repository and environments`,
-          notes: "Configure dev, staging, and production environments from the start.",
-        },
-        {
-          task: `Build auth, onboarding, and the ${primary} dashboard`,
-          notes: "Get users signed in and to their first action as fast as possible.",
-        },
-        {
-          task: `Implement the core ${secondary} feature`,
-          notes: "The one thing the product must do well on day one.",
-        },
-        {
-          task: `Integrate AI or automation for ${primary} workflows`,
-          notes: "Add the smart layer that saves users time on repetitive tasks.",
-        },
-      ],
-    },
-    {
-      id: "review",
-      label: "Test & Review",
-      tasks: [
-        {
-          task: `Run a ${primary} pilot with 3–5 real ${audience}`,
-          notes: "Observe them using the product without guiding them. Capture friction points.",
-        },
-        {
-          task: `Fix critical ${name} bugs from pilot feedback`,
-          notes: "Prioritize bugs that block the core user journey.",
-        },
-        {
-          task: `Validate pricing and willingness to pay for ${secondary}`,
-          notes: "Ask directly: would they pay? At what price? What would stop them?",
-        },
-      ],
-    },
-    {
-      id: "launch",
-      label: "Launch & Grow",
-      tasks: [
-        {
-          task: `Create the ${name} landing page and positioning`,
-          notes: "Make the value proposition concrete with examples and outcomes, not just features.",
-        },
-        {
-          task: `Execute outreach to the first 10 ${primary} customers`,
-          notes: "Direct outreach beats ads at this stage. Be specific about the problem you solve.",
-        },
-        {
-          task: `Set up analytics and feedback loops for ${secondary}`,
-          notes: "Track only metrics that drive decisions. Add in-product feedback capture.",
-        },
-      ],
-    },
-  ];
-}
-
 function buildExtraProjectLanes(name: string, keywords: string[]): RawLane[] {
   const primary = keywords[0] ?? "coach";
   const offer = keywords[1] ?? "program";
@@ -267,16 +137,18 @@ function buildExtraProjectLanes(name: string, keywords: string[]): RawLane[] {
   ];
 }
 
-function buildBaseRoadmapSnapshot(): ProjectLane[] {
+function buildBaseRoadmapSnapshot(roadmapId: string): ProjectLane[] {
+  if (roadmapId !== DEFAULT_ROADMAP_ID) return [];
   const editableRoadmap = loadEditableRoadmap();
-  if (editableRoadmap.length > 0) {
-    return toProjectLanes(buildProjectSnapshotFromRoadmap(editableRoadmap), true);
-  }
-
-  return [];
+  if (editableRoadmap.length === 0) return [];
+  return toProjectLanes(buildProjectSnapshotFromRoadmap(editableRoadmap), true);
 }
 
 function normalizeProject(project: Project): Project {
+  if (!project.roadmapId) {
+    throw new Error("Project is missing roadmapId");
+  }
+
   return {
     ...project,
     lanes: project.lanes.map((lane) => ({
@@ -303,7 +175,11 @@ export function loadProjects(): Project[] {
 
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    projectsCache = raw ? (JSON.parse(raw) as Project[]).map(normalizeProject) : [];
+    projectsCache = raw
+      ? (JSON.parse(raw) as Project[]).map((p) =>
+          normalizeProject({ ...p, roadmapId: p.roadmapId ?? DEFAULT_ROADMAP_ID }),
+        )
+      : [];
   } catch {
     projectsCache = [];
   }
@@ -339,18 +215,20 @@ export function deleteProject(id: string): void {
   notifySubscribers();
 }
 
-export function generateProjectFromPrompt(
+export async function generateProjectFromPrompt(
   name: string,
   description: string,
-): Project {
+  roadmapId = DEFAULT_ROADMAP_ID,
+): Promise<Project> {
   const keywords = extractKeywords(`${name} ${description}`);
-  const snapshotLanes = buildBaseRoadmapSnapshot();
+
+  const editableSnapshot = buildBaseRoadmapSnapshot(roadmapId);
+  const roadmapLanes =
+    editableSnapshot.length > 0
+      ? editableSnapshot
+      : toProjectLanes(await loadRoadmapLanesById(roadmapId), true);
+
   const extraLanes = toProjectLanes(buildExtraProjectLanes(name, keywords));
-  const generatedFallbackLanes = toProjectLanes(buildLanes(name, keywords));
-  const lanes =
-    snapshotLanes.length > 0
-      ? [...snapshotLanes, ...extraLanes]
-      : [...generatedFallbackLanes, ...extraLanes];
 
   return normalizeProject({
     id: crypto.randomUUID(),
@@ -358,7 +236,8 @@ export function generateProjectFromPrompt(
     description,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
+    roadmapId,
+    lanes: [...roadmapLanes, ...extraLanes],
     generateStatus: "idle",
-    lanes,
   });
 }

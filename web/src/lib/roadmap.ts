@@ -26,6 +26,7 @@ export type Lane = {
 };
 
 export const ROADMAP_STORAGE_KEY = "paas_roadmap";
+export const DEFAULT_ROADMAP_ID = "coach-mvp";
 
 export type EditableTaskInput = {
   id?: string;
@@ -160,10 +161,41 @@ export function getContentUrl(contentPath: string): string {
   return getRawUrl(contentPath);
 }
 
-export async function loadRoadmapLanes(
+export type RoadmapDefinition = {
+  id: string;
+  label: string;
+  lanes: LaneManifestEntry[];
+};
+
+export const ROADMAPS: Record<string, RoadmapDefinition> = {
+  [DEFAULT_ROADMAP_ID]: {
+    id: DEFAULT_ROADMAP_ID,
+    label: "Coach MVP Roadmap",
+    lanes: lanesManifest as LaneManifestEntry[],
+  },
+};
+
+export function listRoadmaps(): RoadmapDefinition[] {
+  return Object.values(ROADMAPS);
+}
+
+export function getRoadmap(roadmapId?: string): RoadmapDefinition {
+  if (!roadmapId) {
+    return ROADMAPS[DEFAULT_ROADMAP_ID];
+  }
+
+  return ROADMAPS[roadmapId] ?? ROADMAPS[DEFAULT_ROADMAP_ID];
+}
+
+export function hasRoadmap(roadmapId: string): boolean {
+  return roadmapId in ROADMAPS;
+}
+
+export async function loadRoadmapLanesById(
+  roadmapId?: string,
   localContent?: Record<string, string>,
 ): Promise<Lane[]> {
-  const manifest = lanesManifest as LaneManifestEntry[];
+  const manifest = getRoadmap(roadmapId).lanes;
 
   return Promise.all(
     manifest.map(async (entry, index) => {
@@ -215,6 +247,12 @@ export async function loadRoadmapLanes(
   );
 }
 
+export async function loadRoadmapLanes(
+  localContent?: Record<string, string>,
+): Promise<Lane[]> {
+  return loadRoadmapLanesById(DEFAULT_ROADMAP_ID, localContent);
+}
+
 export function serializeRoadmapLanes(lanes: Lane[]): EditableLaneInput[] {
   return lanes.map((lane) => ({
     id: lane.id,
@@ -250,4 +288,3 @@ export function saveEditableRoadmap(lanes: Lane[]): Lane[] {
 export function buildProjectSnapshotFromRoadmap(lanes: Lane[]): Lane[] {
   return hydrateRoadmapLanes(serializeRoadmapLanes(lanes));
 }
-

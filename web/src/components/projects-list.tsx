@@ -23,15 +23,21 @@ export function ProjectsList() {
   const [newDescription, setNewDescription] = useState("");
   const [nameError, setNameError] = useState("");
   const [preview, setPreview] = useState<Project | null>(null);
+  const [generating, setGenerating] = useState(false);
 
-  const handleGenerate = () => {
+  const handleGenerate = async () => {
     const name = newName.trim();
     if (!name) {
       setNameError("Please enter a project name.");
       return;
     }
     setNameError("");
-    setPreview(generateProjectFromPrompt(name, newDescription.trim()));
+    setGenerating(true);
+    try {
+      setPreview(await generateProjectFromPrompt(name, newDescription.trim()));
+    } finally {
+      setGenerating(false);
+    }
   };
 
   const handleCreate = () => {
@@ -140,7 +146,8 @@ export function ProjectsList() {
               <button
                 type="button"
                 onClick={handleGenerate}
-                className="flex items-center gap-1.5 rounded-xl bg-[#245c4f] px-4 py-2.5 text-sm font-semibold text-[#fff8f2] transition hover:bg-[#1f4f44]"
+                disabled={generating}
+                className="flex items-center gap-1.5 rounded-xl bg-[#245c4f] px-4 py-2.5 text-sm font-semibold text-[#fff8f2] transition hover:bg-[#1f4f44] disabled:opacity-60"
               >
                 <svg
                   className="h-4 w-4"
@@ -156,7 +163,7 @@ export function ProjectsList() {
                     d="M13 10V3L4 14h7v7l9-11h-7z"
                   />
                 </svg>
-                Generate roadmap
+                {generating ? "Loading roadmap…" : "Generate roadmap"}
               </button>
             ) : (
               <button
