@@ -1,16 +1,10 @@
 import type { Metadata } from "next";
 import { ClerkProvider } from "@clerk/nextjs";
-import { Spectral, IBM_Plex_Mono } from "next/font/google";
+import { IBM_Plex_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 
 import "./globals.css";
-
-const spectral = Spectral({
-  variable: "--font-spectral",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-});
 
 const plexMono = IBM_Plex_Mono({
   variable: "--font-plex-mono",
@@ -29,7 +23,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${spectral.variable} ${plexMono.variable} h-full antialiased`}>
+    <html lang="en" className={`${plexMono.variable} h-full`}>
       <body className="min-h-full flex flex-col">
         <ClerkProvider>{children}</ClerkProvider>
         <Analytics />
