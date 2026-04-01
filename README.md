@@ -1,4 +1,4 @@
-# paas
+# Prompt as a Service (PaaS)
 
 ## Project Roadmap
 
