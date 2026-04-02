@@ -19,11 +19,13 @@ services:
   web:
     build:
       context: ./web
-    command: /bin/sh -lc "npm ci && npm run dev -- --hostname 0.0.0.0"
+    command: /bin/sh -lc "npm ci && npm run dev -- --hostname 0.0.0.0 -p 3001"
     env_file:
       - ./web/.env.local
     ports:
-      - "3000:3000"
+      - "3001:3001"
+    environment:
+      - PORT=3001
     restart: unless-stopped
     volumes:
       - ./web:/app
@@ -45,7 +47,7 @@ services:
     command: >-
       stripe listen
       --api-key "$$STRIPE_SECRET_KEY"
-      --forward-to http://web:3000/api/stripe/webhook
+      --forward-to http://web:3001/api/stripe/webhook
       --skip-verify
     env_file:
       - ./web/.env.local
