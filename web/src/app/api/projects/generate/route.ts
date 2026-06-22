@@ -26,7 +26,7 @@ In 2-3 concise sentences, describe the most important action to complete this ta
 }
 
 async function callOpenAI(prompt: string): Promise<string> {
-  const apiKey = process.env.OPENAI_API_KEY;
+  const apiKey = (globalThis as any).process?.env?.OPENAI_API_KEY;
   if (!apiKey) return "";
 
   const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -59,8 +59,7 @@ function simulateOutput(task: string, laneLabel: string): string {
   ];
   // Select a template deterministically so the same task always gets the same template
   // across multiple renders, avoiding flickering in simulated responses.
-  const idx =
-    (task.length + laneLabel.length) % templates.length;
+  const idx = (task.length + laneLabel.length) % templates.length;
   return templates[idx];
 }
 
@@ -68,20 +67,59 @@ function encodeSSE(data: object): string {
   return `data: ${JSON.stringify(data)}\n\n`;
 }
 
+// Hard limits to protect OpenAI quota and server resources
+const MAX_REQUEST_BYTES = 50_000; // reject bodies larger than ~50KB
+const MAX_LANES = 10;
+const MAX_TASKS_PER_LANE = 20;
+const MAX_TASK_TEXT_LEN = 500; // task title
+const MAX_NOTES_LEN = 2000; // task notes
+
 export async function POST(request: NextRequest) {
   const { userId } = await auth();
   if (!userId) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
       status: 401,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  // Quick fail on excessively large uploads. Prefer Content-Length header when present.
+  const contentLength = (request as any).headers?.get("content-length");
+  if (contentLength) {
+    const parsed = Number(contentLength);
+    if (!Number.isNaN(parsed) && parsed > MAX_REQUEST_BYTES) {
+      return new Response(JSON.stringify({ error: "Request body too large" }), {
+        status: 413,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+  }
+
+  // Read raw text so we can enforce a total size cap even when Content-Length is missing
+  let raw: string;
+  try {
+    raw = await (request as any).text();
+  } catch {
+    return new Response(JSON.stringify({ error: "Could not read request body" }), {
+      status: 400,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  if (raw.length > MAX_REQUEST_BYTES) {
+    return new Response(JSON.stringify({ error: "Request body too large" }), {
+      status: 413,
+      headers: { "Content-Type": "application/json" },
     });
   }
 
   let body: GenerateRequest;
   try {
-    body = (await request.json()) as GenerateRequest;
+    body = JSON.parse(raw) as GenerateRequest;
   } catch {
     return new Response(JSON.stringify({ error: "Invalid JSON" }), {
       status: 400,
+      headers: { "Content-Type": "application/json" },
     });
   }
 
@@ -89,19 +127,74 @@ export async function POST(request: NextRequest) {
   if (!Array.isArray(lanes)) {
     return new Response(JSON.stringify({ error: "lanes must be an array" }), {
       status: 400,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
+  // Enforce lane/task limits
+  if (lanes.length === 0) {
+    return new Response(JSON.stringify({ error: "lanes must not be empty" }), {
+      status: 400,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+  if (lanes.length > MAX_LANES) {
+    return new Response(JSON.stringify({ error: `Too many lanes (max ${MAX_LANES})` }), {
+      status: 413,
+      headers: { "Content-Type": "application/json" },
     });
   }
 
   const tasks: TaskRef[] = [];
-  for (const lane of lanes) {
-    lane.tasks.forEach((t, i) => {
-      tasks.push({
-        laneId: lane.id,
-        laneLabel: lane.label,
-        taskIndex: i,
-        task: t.task,
-        notes: t.notes,
-      });
+  try {
+    for (const lane of lanes) {
+      if (!Array.isArray(lane.tasks)) {
+        return new Response(JSON.stringify({ error: "each lane.tasks must be an array" }), {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+      if (lane.tasks.length > MAX_TASKS_PER_LANE) {
+        return new Response(
+          JSON.stringify({ error: `Too many tasks in lane '${lane.label ?? lane.id ?? "?"}' (max ${MAX_TASKS_PER_LANE})` }),
+          { status: 413, headers: { "Content-Type": "application/json" } },
+        );
+      }
+
+      for (let i = 0; i < lane.tasks.length; i++) {
+        const t = lane.tasks[i] as any;
+        if (typeof t.task !== "string" || typeof t.notes !== "string") {
+          return new Response(JSON.stringify({ error: "task and notes must be strings" }), {
+            status: 400,
+            headers: { "Content-Type": "application/json" },
+          });
+        }
+        if (t.task.length === 0 || t.task.length > MAX_TASK_TEXT_LEN) {
+          return new Response(
+            JSON.stringify({ error: `task length must be 1..${MAX_TASK_TEXT_LEN} characters` }),
+            { status: 400, headers: { "Content-Type": "application/json" } },
+          );
+        }
+        if (t.notes.length > MAX_NOTES_LEN) {
+          return new Response(
+            JSON.stringify({ error: `notes length must be <= ${MAX_NOTES_LEN} characters` }),
+            { status: 400, headers: { "Content-Type": "application/json" } },
+          );
+        }
+
+        tasks.push({
+          laneId: lane.id,
+          laneLabel: lane.label,
+          taskIndex: i,
+          task: t.task,
+          notes: t.notes,
+        });
+      }
+    }
+  } catch (err) {
+    return new Response(JSON.stringify({ error: "Invalid request structure" }), {
+      status: 400,
+      headers: { "Content-Type": "application/json" },
     });
   }
 
@@ -113,40 +206,47 @@ export async function POST(request: NextRequest) {
         controller.enqueue(enc.encode(encodeSSE(data)));
       };
 
-      for (const ref of tasks) {
-        // Mark in_progress
-        send({
-          laneId: ref.laneId,
-          taskIndex: ref.taskIndex,
-          status: "in_progress",
-          aiOutput: null,
-        });
+      try {
+        for (const ref of tasks) {
+          // Mark in_progress
+          send({
+            laneId: ref.laneId,
+            taskIndex: ref.taskIndex,
+            status: "in_progress",
+            aiOutput: null,
+          });
 
-        // Small delay for realistic streaming feel
-        await new Promise((r) => setTimeout(r, 200));
+          // Small delay for realistic streaming feel
+          await new Promise((r) => setTimeout(r, 200));
 
-        // Call AI or simulate
-        const prompt = buildPrompt(ref.task, ref.laneLabel, ref.notes);
-        let output = await callOpenAI(prompt);
-        if (!output) {
-          output = simulateOutput(ref.task, ref.laneLabel);
+          // Call AI or simulate
+          const prompt = buildPrompt(ref.task, ref.laneLabel, ref.notes);
+          let output = await callOpenAI(prompt);
+          if (!output) {
+            output = simulateOutput(ref.task, ref.laneLabel);
+          }
+
+          // Mark done with output
+          send({
+            laneId: ref.laneId,
+            taskIndex: ref.taskIndex,
+            status: "done",
+            aiOutput: output,
+          });
+
+          // Small delay between tasks
+          await new Promise((r) => setTimeout(r, 100));
         }
 
-        // Mark done with output
-        send({
-          laneId: ref.laneId,
-          taskIndex: ref.taskIndex,
-          status: "done",
-          aiOutput: output,
-        });
-
-        // Small delay between tasks
-        await new Promise((r) => setTimeout(r, 100));
+        // Signal completion
+        send({ done: true });
+        controller.close();
+      } catch (err) {
+        // If an error happens during streaming, surface a single error event then close
+        console.error("Generation error:", err);
+        send({ error: "Generation failed" });
+        controller.close();
       }
-
-      // Signal completion
-      send({ done: true });
-      controller.close();
     },
   });
 
