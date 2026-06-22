@@ -69,10 +69,54 @@ function encodeSSE(data: object): string {
 
 // Hard limits to protect OpenAI quota and server resources
 const MAX_REQUEST_BYTES = 50_000; // reject bodies larger than ~50KB
-const MAX_LANES = 10;
+const MAX_LANES = 15;
 const MAX_TASKS_PER_LANE = 20;
 const MAX_TASK_TEXT_LEN = 500; // task title
 const MAX_NOTES_LEN = 2000; // task notes
+
+// Simple in-memory rate limiting (MVP): per-IP and per-user token buckets.
+// NOTE: This is best-effort for a single-instance deployment. For multi-instance/prod, replace with Redis or a shared store.
+const IP_RATE_LIMIT_PER_MINUTE = 30; // requests per minute per IP
+const USER_RATE_LIMIT_PER_MINUTE = 60; // requests per minute per user
+
+type Bucket = { tokens: number; lastRefill: number };
+const ipBuckets: Map<string, Bucket> = new Map();
+const userBuckets: Map<string, Bucket> = new Map();
+
+function getClientIp(req: NextRequest): string {
+  const headers = (req as any).headers;
+  // common proxy headers
+  const forwarded = headers?.get?.('x-forwarded-for') || headers?.get?.('x-real-ip') || headers?.get?.('cf-connecting-ip');
+  if (forwarded && typeof forwarded === 'string') {
+    // x-forwarded-for can be a list
+    return forwarded.split(',')[0].trim();
+  }
+  return 'unknown';
+}
+
+function allowRequest(bucketMap: Map<string, Bucket>, key: string, capacityPerMinute: number): boolean {
+  const now = Date.now();
+  const windowMs = 60_000;
+  const bucket = bucketMap.get(key) ?? { tokens: capacityPerMinute, lastRefill: now };
+
+  // refill proportionally
+  const elapsed = now - bucket.lastRefill;
+  if (elapsed > 0) {
+    const refill = (elapsed / windowMs) * capacityPerMinute;
+    bucket.tokens = Math.min(capacityPerMinute, bucket.tokens + refill);
+    bucket.lastRefill = now;
+  }
+
+  if (bucket.tokens >= 1) {
+    bucket.tokens -= 1;
+    bucketMap.set(key, bucket);
+    return true;
+  }
+
+  // not allowed
+  bucketMap.set(key, bucket);
+  return false;
+}
 
 export async function POST(request: NextRequest) {
   const { userId } = await auth();
@@ -81,6 +125,27 @@ export async function POST(request: NextRequest) {
       status: 401,
       headers: { "Content-Type": "application/json" },
     });
+  }
+
+  // Rate limiting: per-IP and per-user
+  try {
+    const clientIp = getClientIp(request);
+    if (!allowRequest(ipBuckets, clientIp, IP_RATE_LIMIT_PER_MINUTE)) {
+      return new Response(JSON.stringify({ error: "Too many requests (ip)" }), {
+        status: 429,
+        headers: { "Content-Type": "application/json", "Retry-After": "60" },
+      });
+    }
+
+    if (userId && !allowRequest(userBuckets, userId, USER_RATE_LIMIT_PER_MINUTE)) {
+      return new Response(JSON.stringify({ error: "Too many requests (user)" }), {
+        status: 429,
+        headers: { "Content-Type": "application/json", "Retry-After": "60" },
+      });
+    }
+  } catch (e) {
+    // continue on unexpected rate-limit helper failures — don't block valid requests
+    console.warn('Rate limit check failed', e);
   }
 
   // Quick fail on excessively large uploads. Prefer Content-Length header when present.
