@@ -43,7 +43,7 @@ export default function RootLayout({
                 <HamburgerMenu />
                 {/* Site title / logo */}
                 <Link href="/" className="text-sm font-semibold text-[#1d1a17]">
-                  Roadmap
+                  Product as a Service
                 </Link>
               </div>
 

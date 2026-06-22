@@ -1,6 +1,6 @@
 "use client";
 
-import { type KeyboardEvent, useEffect, useState } from "react";
+import { type KeyboardEvent, useEffect, useRef, useState } from "react";
 
 import {
   type Lane,
@@ -188,6 +188,9 @@ export function LaneAccordion({ lanes: initialLanes }: { lanes: Lane[] }) {
   const [taskDrafts, setTaskDrafts] = useState<Record<string, TaskDraft | null>>(
     {},
   );
+  const [showResetModal, setShowResetModal] = useState(false);
+  const resetConfirmRef = useRef<HTMLButtonElement | null>(null);
+  const resetCancelRef = useRef<HTMLButtonElement | null>(null);
 
   useEffect(() => {
     const saved = loadEditableRoadmap();
@@ -295,6 +298,38 @@ export function LaneAccordion({ lanes: initialLanes }: { lanes: Lane[] }) {
     await save(nextLanes);
   };
 
+  // Open reset modal (kept as a named function so it's easy to instrument/debug)
+  const openResetModal = () => {
+    // Debug: show a console marker so we can confirm the click handler runs
+    // eslint-disable-next-line no-console
+    console.log("LaneAccordion: openResetModal called");
+    setShowResetModal(true);
+  };
+
+  // Accessibility: focus the confirm button and close on Escape while modal is open
+  useEffect(() => {
+    if (!showResetModal) return;
+
+    // Focus the Reset button for keyboard users
+    const timer = setTimeout(() => {
+      resetConfirmRef.current?.focus();
+    }, 0);
+
+    function handleKey(e: KeyboardEvent) {
+      // Close on Escape
+      // @ts-ignore - using KeyboardEvent from DOM
+      if (e.key === "Escape") {
+        setShowResetModal(false);
+      }
+    }
+
+    window.addEventListener("keydown", handleKey as any);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener("keydown", handleKey as any);
+    };
+  }, [showResetModal]);
+
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#312a22]/15 bg-[#fffaf2]/88 px-5 py-4 shadow-[0_4px_16px_rgba(68,49,31,0.08)]">
@@ -312,6 +347,15 @@ export function LaneAccordion({ lanes: initialLanes }: { lanes: Lane[] }) {
           )}
           <button
             type="button"
+            onClick={openResetModal}
+            disabled={isSaving}
+            className="rounded-full border border-[#312a22]/15 bg-white px-4 py-2 text-sm text-[#1d1a17] transition hover:bg-[#f8f3eb] disabled:opacity-60"
+          >
+            Reset lanes & tasks
+          </button>
+
+          <button
+            type="button"
             onClick={() => void addLane()}
             disabled={isSaving}
             className="rounded-full bg-[#245c4f] px-4 py-2 text-sm font-semibold text-[#fff8f2] transition hover:bg-[#1f4f44] disabled:opacity-60"
@@ -320,6 +364,49 @@ export function LaneAccordion({ lanes: initialLanes }: { lanes: Lane[] }) {
           </button>
         </div>
       </div>
+
+      {showResetModal && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center">
+          <div className="fixed inset-0 bg-black/40" onClick={() => setShowResetModal(false)} />
+          <div role="dialog" aria-modal="true" aria-labelledby="reset-title" className="relative z-10 w-full max-w-lg rounded-2xl bg-white p-6 shadow-lg">
+            <h3 id="reset-title" className="text-lg font-semibold text-[#1d1a17]">Reset roadmap to defaults</h3>
+            <p className="mt-2 text-sm text-[#5f584f]">This will restore all lanes and tasks from the instruction files in <code className="rounded bg-[#f3f2ef] px-1 py-0.5 text-xs">.github/instructions</code> and overwrite any edits saved in your browser. This action cannot be undone.</p>
+            <div className="mt-4 flex justify-end gap-3">
+              <button
+                ref={resetCancelRef}
+                type="button"
+                onClick={() => setShowResetModal(false)}
+                className="rounded-full border border-[#312a22]/15 bg-white px-4 py-2 text-sm text-[#1d1a17] transition hover:bg-[#f8f3eb]"
+              >
+                Cancel
+              </button>
+              <button
+                ref={resetConfirmRef}
+                type="button"
+                onClick={async () => {
+                  setShowResetModal(false);
+                  try {
+                    setIsSaving(true);
+                    setSaveMessage(null);
+                    setLanes(initialLanes);
+                    setOpenIndex(getActiveLaneIndex(initialLanes));
+                    await save(initialLanes);
+                    setSaveMessage("Reset to defaults");
+                  } catch (e) {
+                    setSaveMessage(e instanceof Error ? e.message : "Failed to reset roadmap");
+                  } finally {
+                    setIsSaving(false);
+                    window.setTimeout(() => setSaveMessage(null), 1800);
+                  }
+                }}
+                className="rounded-full bg-[#cf2f2f] px-4 py-2 text-sm font-semibold text-white hover:bg-[#b82727]"
+              >
+                Reset
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {lanes.map((lane, index) => {
         const isOpen = openIndex === index;
