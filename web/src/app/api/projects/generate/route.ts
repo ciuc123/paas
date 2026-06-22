@@ -203,8 +203,11 @@ export async function POST(request: NextRequest) {
       headers: { "Content-Type": "application/json" },
     });
   }
-  if (lanes.length > MAX_LANES) {
-    return new Response(JSON.stringify({ error: `Too many lanes (max ${MAX_LANES})` }), {
+
+  // Only count lanes that contain at least one task when applying the MAX_LANES limit.
+  const activeLanes = lanes.filter((l: any) => Array.isArray(l.tasks) && l.tasks.length > 0).length;
+  if (activeLanes > MAX_LANES) {
+    return new Response(JSON.stringify({ error: `Too many lanes with tasks (max ${MAX_LANES})` }), {
       status: 413,
       headers: { "Content-Type": "application/json" },
     });
