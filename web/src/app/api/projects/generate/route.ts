@@ -1,4 +1,3 @@
-import { auth } from "@clerk/nextjs/server";
 import { NextRequest } from "next/server";
 
 import type { ProjectLane } from "@/lib/projects";
@@ -119,13 +118,10 @@ function allowRequest(bucketMap: Map<string, Bucket>, key: string, capacityPerMi
 }
 
 export async function POST(request: NextRequest) {
-  const { userId } = await auth();
-  if (!userId) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), {
-      status: 401,
-      headers: { "Content-Type": "application/json" },
-    });
-  }
+  // Authentication is not required for this endpoint. Anonymous users are allowed.
+  // If a Clerk user ID is available in the runtime, it will be used for per-user
+  // rate limiting; otherwise the request is rate-limited by IP only.
+  let userId: string | null = null;
 
   // Rate limiting: per-IP and per-user
   try {

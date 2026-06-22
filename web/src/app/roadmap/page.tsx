@@ -81,20 +81,7 @@ export default async function RoadmapPage({ searchParams }: RoadmapPageProps) {
               Status: {access.stripeStatus ?? "active"}
             </span>
           </div>
-          <div className="mt-6 flex flex-wrap gap-3">
-            <Link
-              href="/"
-              className="inline-flex rounded-full border border-[#312a22]/15 bg-white/70 px-5 py-2.5 text-sm text-[#1d1a17] transition hover:bg-white"
-            >
-              Back to home
-            </Link>
-            <Link
-              href="/projects"
-              className="inline-flex rounded-full bg-[#245c4f] px-5 py-2.5 text-sm font-semibold text-[#fff8f2] transition hover:bg-[#1f4f44]"
-            >
-              My projects
-            </Link>
-          </div>
+          {/* Navigation is available in the global header */}
         </section>
 
         <LaneAccordion lanes={lanes} />

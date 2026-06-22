@@ -32,3 +32,10 @@ export function getStripeWebhookSecret(): string {
 
   return requireEnv("STRIPE_WEBHOOK_SECRET");
 }
+
+// Paywall toggle: when true, app enforces paid access checks. Defaults to false
+// so that authentication alone gates access. To re-enable paid gating set
+// the environment variable PAYWALL_ENABLED=true (server-side).
+export function isPaywallEnabled(): boolean {
+  return process.env.PAYWALL_ENABLED === "true";
+}

@@ -61,12 +61,7 @@ export default async function ContentPage({ searchParams }: ContentPageProps) {
             </span>
           </div>
           <div className="mt-6 flex gap-3">
-            <Link
-              href="/roadmap"
-              className="inline-flex rounded-full border border-[#312a22]/15 bg-white/70 px-5 py-2.5 text-sm text-[#1d1a17] transition hover:bg-white"
-            >
-              Back to roadmap
-            </Link>
+            {/* Navigation is available in the global header */}
             <a
               href={url}
               target="_blank"

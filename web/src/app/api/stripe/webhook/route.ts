@@ -35,7 +35,9 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     session.metadata?.clerkUserId || session.client_reference_id || null;
 
   if (!clerkUserId) {
-    throw new Error("checkout.session.completed missing clerkUserId");
+    // Anonymous checkout — no Clerk user to attach. Log and skip granting metadata.
+    console.warn("checkout.session.completed without clerkUserId; skipping metadata update");
+    return;
   }
 
   await updateClerkMetadata({

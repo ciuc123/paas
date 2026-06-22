@@ -26,12 +26,6 @@ export function ProjectLoader({ projectId }: Props) {
     return (
       <div className="mx-auto max-w-2xl rounded-2xl border border-[#312a22]/15 bg-[#fffaf2]/90 p-8 text-center">
         <p className="text-sm text-[#5f584f]">Project not found.</p>
-        <Link
-          href="/projects"
-          className="mt-4 inline-flex rounded-full bg-[#245c4f] px-5 py-2.5 text-sm font-semibold text-[#fff8f2] transition hover:bg-[#1f4f44]"
-        >
-          Back to projects
-        </Link>
       </div>
     );
   }
@@ -49,14 +43,7 @@ export function ProjectLoader({ projectId }: Props) {
         {project.description && (
           <p className="mt-3 text-[#5f584f]">{project.description}</p>
         )}
-        <div className="mt-5">
-          <Link
-            href="/projects"
-            className="inline-flex rounded-full border border-[#312a22]/15 bg-white/70 px-5 py-2.5 text-sm text-[#1d1a17] transition hover:bg-white"
-          >
-            ← All projects
-          </Link>
-        </div>
+        {/* Navigation available in global header */}
       </div>
 
       <ProjectBoard project={project} />

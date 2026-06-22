@@ -1,17 +1,10 @@
-import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
+import { clerkMiddleware } from "@clerk/nextjs/server";
 
-const isProtectedRoute = createRouteMatcher([
-  "/roadmap(.*)",
-  "/upgrade(.*)",
-  "/projects(.*)",
-  "/api/stripe/create-checkout-session",
-  "/api/projects(.*)",
-]);
-
-export default clerkMiddleware(async (auth, req) => {
-  if (isProtectedRoute(req)) {
-    await auth.protect();
-  }
+// Do not enforce per-route protection in middleware so that the app and APIs
+// can be used without requiring Clerk authentication. Individual routes may
+// still call `auth()` if they need stronger guarantees.
+export default clerkMiddleware(async (_auth, _req) => {
+  // noop — don't call _auth.protect()
 });
 
 export const config = {
