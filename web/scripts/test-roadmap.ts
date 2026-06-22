@@ -19,7 +19,7 @@ async function run() {
 
   const lanes = await loadRoadmapLanes(localContent);
 
-  const lane = lanes.find((l) => l.id === entry.id || l.path === ent  ry.path);
+  const lane = lanes.find((l) => l.id === entry.id || l.path === entry.path);
   if (!lane) throw new Error("Lane missing after loadRoadmapLanes");
 
   console.log(`Parsed ${lane.tasks.length} tasks for lane '${lane.label}'`);

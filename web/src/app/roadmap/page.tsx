@@ -1,12 +1,8 @@
 import fs from "fs";
 import path from "path";
 
-import Link from "next/link";
-import { redirect } from "next/navigation";
-
 import { getCurrentAccess } from "@/lib/access";
 import { lanesManifest, loadRoadmapLanes } from "@/lib/roadmap";
-import { grantAccessFromCheckoutSession } from "@/lib/stripe-access";
 import { LaneAccordion } from "@/components/lane-accordion";
 
 export const dynamic = "force-dynamic";
@@ -60,31 +56,9 @@ function readLocalInstructions(): Record<string, string> {
 }
 
 export default async function RoadmapPage({ searchParams }: RoadmapPageProps) {
-  let access = await getCurrentAccess();
-
-  if (!access.hasPaidAccess && access.userId) {
-    const params = await searchParams;
-    const checkout = params.checkout;
-    const sessionId = params.session_id;
-    const isCheckoutSuccess = checkout === "success";
-    const singleSessionId =
-      typeof sessionId === "string" ? sessionId : null;
-
-    if (isCheckoutSuccess && singleSessionId) {
-      const granted = await grantAccessFromCheckoutSession({
-        clerkUserId: access.userId,
-        sessionId: singleSessionId,
-      });
-
-      if (granted) {
-        access = await getCurrentAccess();
-      }
-    }
-  }
-
-  if (!access.hasPaidAccess) {
-    redirect("/upgrade");
-  }
+  // Access object is still useful for UI (stripeStatus etc.), but we no longer
+  // gate access based on auth or stripe entitlements.
+  const access = await getCurrentAccess();
 
   const lanes = await loadRoadmapLanes(readLocalInstructions());
 

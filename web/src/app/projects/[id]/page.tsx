@@ -1,7 +1,5 @@
-import { redirect } from "next/navigation";
-
-import { getCurrentAccess } from "@/lib/access";
 import { ProjectLoader } from "@/components/project-loader";
+import { getCurrentAccess } from "@/lib/access";
 
 export const dynamic = "force-dynamic";
 
@@ -10,11 +8,8 @@ type Props = {
 };
 
 export default async function ProjectPage({ params }: Props) {
+  // Auth optional: don't redirect unauthenticated users.
   const access = await getCurrentAccess();
-
-  if (!access.hasPaidAccess) {
-    redirect("/upgrade");
-  }
 
   const { id } = await params;
 

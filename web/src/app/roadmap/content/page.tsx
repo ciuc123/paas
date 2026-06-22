@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { marked } from "marked";
 
@@ -14,8 +13,9 @@ type ContentPageProps = {
 export default async function ContentPage({ searchParams }: ContentPageProps) {
   const access = await getCurrentAccess();
 
-  if (!access.hasPaidAccess) {
-    redirect("/upgrade");
+  // Gate on authentication only. Redirect unauthenticated users to sign-in.
+  if (!access.userId) {
+    redirect("/sign-in");
   }
 
   const params = await searchParams;
@@ -26,9 +26,13 @@ export default async function ContentPage({ searchParams }: ContentPageProps) {
     redirect("/roadmap");
   }
 
-  const url = getContentUrl(contentPath);
+  // `redirect` doesn't narrow types for TypeScript, so assert non-null after
+  // the early redirect check.
+  const contentPathStr = contentPath as string;
+
+  const url = getContentUrl(contentPathStr);
   let html: string;
-  let title = contentPath.split("/").pop()?.replace(/\.md$/, "") ?? "Output";
+  let title = contentPathStr.split("/").pop()?.replace(/\.md$/, "") ?? "Output";
 
   try {
     const response = await fetch(url, { cache: "no-store" });
@@ -57,7 +61,7 @@ export default async function ContentPage({ searchParams }: ContentPageProps) {
           </h1>
           <div className="mt-4 flex flex-wrap gap-3 text-sm text-[#1d1a17]">
             <span className="rounded-full border border-[#312a22]/15 bg-white/65 px-4 py-2">
-              {contentPath}
+              {contentPathStr}
             </span>
           </div>
           <div className="mt-6 flex gap-3">

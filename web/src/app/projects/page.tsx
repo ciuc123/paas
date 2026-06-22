@@ -1,17 +1,11 @@
-import Link from "next/link";
-import { redirect } from "next/navigation";
-
-import { getCurrentAccess } from "@/lib/access";
 import { ProjectsList } from "@/components/projects-list";
+import { getCurrentAccess } from "@/lib/access";
 
 export const dynamic = "force-dynamic";
 
 export default async function ProjectsPage() {
+  // Access object still available for UI, but auth is optional so we don't redirect.
   const access = await getCurrentAccess();
-
-  if (!access.hasPaidAccess) {
-    redirect("/upgrade");
-  }
 
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(217,108,63,0.18),_transparent_32%),radial-gradient(circle_at_top_right,_rgba(36,92,79,0.18),_transparent_30%),linear-gradient(180deg,#fcf7ef_0%,#f4efe7_58%,#efe7db_100%)]">

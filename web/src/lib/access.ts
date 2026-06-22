@@ -1,8 +1,5 @@
 import { currentUser } from "@clerk/nextjs/server";
 
-import { isPaidStatus } from "@/lib/plans";
-import { isPaywallEnabled } from "@/lib/env";
-
 type AccessResult = {
   userId: string | null;
   hasPaidAccess: boolean;
@@ -14,25 +11,13 @@ export async function getCurrentAccess(): Promise<AccessResult> {
   try {
     user = await currentUser();
   } catch {
-    // If the paywall is disabled, allow anonymous access.
-    if (!isPaywallEnabled()) {
-      return { userId: null, hasPaidAccess: true, stripeStatus: null };
-    }
-
-    return { userId: null, hasPaidAccess: false, stripeStatus: null };
+    // If Clerk throws, fall back to anonymous access (auth optional).
+    return { userId: null, hasPaidAccess: true, stripeStatus: null };
   }
 
   if (!user) {
-    // No authenticated user: if paywall is disabled, allow access to anonymous users.
-    if (!isPaywallEnabled()) {
-      return { userId: null, hasPaidAccess: true, stripeStatus: null };
-    }
-
-    return {
-      userId: null,
-      hasPaidAccess: false,
-      stripeStatus: null,
-    };
+    // Auth is optional: allow anonymous users full access.
+    return { userId: null, hasPaidAccess: true, stripeStatus: null };
   }
 
   const privateMetadata = user.privateMetadata as Record<string, unknown>;
@@ -41,16 +26,8 @@ export async function getCurrentAccess(): Promise<AccessResult> {
       ? privateMetadata.stripeStatus
       : null;
 
-  const paidFlagFromMetadata = privateMetadata?.paidAccess === true;
-
-  // Determine access based on metadata / stripe status
-  let hasPaidAccess = paidFlagFromMetadata || isPaidStatus(statusFromMetadata);
-
-  // If paywall is disabled (default), treat all authenticated users as having access.
-  // This allows turning the paywall back on later by setting PAYWALL_ENABLED=true.
-  if (!isPaywallEnabled()) {
-    hasPaidAccess = true;
-  }
+  // Auth is optional and paid gating is disabled: everyone has access.
+  const hasPaidAccess = true;
 
   return {
     userId: user.id,
