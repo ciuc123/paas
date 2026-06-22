@@ -11,6 +11,7 @@ import {
   saveEditableRoadmap,
   serializeRoadmapLanes,
   hydrateRoadmapLanes,
+  ROADMAP_STORAGE_KEY,
 } from "@/lib/roadmap";
 
 const statusColors: Record<Task["status"], string> = {
@@ -388,6 +389,14 @@ export function LaneAccordion({ lanes: initialLanes }: { lanes: Lane[] }) {
                   try {
                     setIsSaving(true);
                     setSaveMessage(null);
+                    // Clear any client-side saved snapshot so it doesn't re-override defaults
+                    try {
+                      localStorage.removeItem(ROADMAP_STORAGE_KEY);
+                    } catch {}
+                    // Debug: log the initial lanes shape so we can verify server-provided defaults
+                    // eslint-disable-next-line no-console
+                    console.log("LaneAccordion: resetting to initialLanes (task counts)", initialLanes.map(l => l.tasks?.length ?? 0));
+                    // Restore defaults from the server-provided initial prop (includes tasks)
                     setLanes(initialLanes);
                     setOpenIndex(getActiveLaneIndex(initialLanes));
                     await save(initialLanes);

@@ -114,7 +114,51 @@ function normalizeLane(entry: EditableLaneInput, index: number): Lane {
 function parseTaskTable(markdown: string): Task[] {
   const match = markdown.match(/##\s+Task Status\s+([\s\S]*?)(?:\n##\s|$)/i);
   if (!match) {
-    throw new Error("Missing Task Status section");
+    // Fallback: try to find any markdown table that looks like a task/status table
+    const lines = markdown
+      .split("\n")
+      .map((l) => l.trim())
+      .filter(Boolean);
+
+    // Find a header row that contains Task and Status (case-insensitive)
+    let headerIndex = -1;
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      if (!line.startsWith("|")) continue;
+      const cells = line.split("|").slice(1, -1).map((c) => c.trim().toLowerCase());
+      if (cells.length >= 2 && cells[0].includes("task") && cells[1].includes("status")) {
+        headerIndex = i;
+        break;
+      }
+    }
+
+    if (headerIndex === -1) {
+      throw new Error("Missing Task Status section");
+    }
+
+    const tableLines: string[] = [];
+    for (let i = headerIndex; i < lines.length; i++) {
+      const line = lines[i];
+      if (!line.startsWith("|")) break;
+      tableLines.push(line);
+    }
+
+    const rows = tableLines
+      .map((line) => line.split("|").slice(1, -1).map((cell) => cell.trim()))
+      .filter((cells) => cells.length >= 2)
+      .filter((cells) => {
+        const first = (cells[0] ?? "").toLowerCase();
+        const second = (cells[1] ?? "").toLowerCase();
+        return first !== "task" && second !== "status" && !/^[-:\s]+$/.test(cells.join(""));
+      });
+
+    return rows.map(([task, status, notes, content], index) => ({
+      id: `task-${index + 1}-${slugify(task)}`,
+      task,
+      status: normalizeStatus(status),
+      notes: notes ?? "",
+      ...(content && content.length > 0 ? { contentPath: content } : {}),
+    }));
   }
 
   const lines = match[1]
@@ -250,4 +294,3 @@ export function saveEditableRoadmap(lanes: Lane[]): Lane[] {
 export function buildProjectSnapshotFromRoadmap(lanes: Lane[]): Lane[] {
   return hydrateRoadmapLanes(serializeRoadmapLanes(lanes));
 }
-
