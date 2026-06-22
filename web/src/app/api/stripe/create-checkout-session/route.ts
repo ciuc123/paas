@@ -1,9 +1,13 @@
 import { NextResponse } from "next/server";
 
-import { getAppUrl, getStripePriceId } from "@/lib/env";
+import { getAppUrl, getStripePriceId, isPaywallEnabled } from "@/lib/env";
 import { getStripeClient } from "@/lib/stripe";
 
 export async function POST() {
+  // If the paywall is not enabled, disable all Stripe side effects in MVP mode.
+  if (!isPaywallEnabled()) {
+    return NextResponse.json({ error: "Billing disabled (paywall off)" }, { status: 404 });
+  }
   // Do not require authentication for creating a checkout session.
   // If a Clerk user is available server-side, we will attach the ID, otherwise
   // create a session without clerk metadata so anonymous users can checkout.

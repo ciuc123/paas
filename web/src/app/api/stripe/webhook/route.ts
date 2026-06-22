@@ -6,6 +6,7 @@ import Stripe from "stripe";
 import {
   getStripeWebhookSecret,
   shouldSkipStripeWebhookSignatureVerification,
+  isPaywallEnabled,
 } from "@/lib/env";
 import { isPaidStatus } from "@/lib/plans";
 import { getStripeClient } from "@/lib/stripe";
@@ -49,6 +50,12 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
 }
 
 export async function POST(request: Request) {
+  // If the paywall is not enabled, webhook processing is disabled to avoid
+  // any billing-related side effects in MVP mode.
+  if (!isPaywallEnabled()) {
+    return NextResponse.json({ error: "Billing disabled (paywall off)" }, { status: 404 });
+  }
+
   const stripe = getStripeClient();
   const payload = await request.text();
   const signature = (await headers()).get("stripe-signature");
