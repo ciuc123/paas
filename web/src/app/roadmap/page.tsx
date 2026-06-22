@@ -63,10 +63,10 @@ export default async function RoadmapPage({ searchParams }: RoadmapPageProps) {
       <div className="mx-auto max-w-2xl space-y-6 p-6">
         <section className="rounded-3xl border border-[#312a22]/15 bg-[#fffaf2]/90 p-8 shadow-[0_24px_60px_rgba(68,49,31,0.14)]">
           <p className="text-xs uppercase tracking-[0.18em] text-[#245c4f]">
-            paid roadmap access
+            Roadmap
           </p>
           <h1 className="mt-3 text-5xl leading-[0.95] text-[#1d1a17]">
-            Product swimlanes for members.
+            Build your product swimlanes
           </h1>
           <p className="mt-4 text-[#5f584f]">
             Live roadmap statuses are read from instruction files on every load.
