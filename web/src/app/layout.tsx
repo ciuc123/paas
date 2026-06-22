@@ -3,23 +3,10 @@ import { ClerkProvider } from "@clerk/nextjs";
 import AccountArea from "@/components/account-area";
 import Link from "next/link";
 import { HamburgerMenu } from "@/components/hamburger-menu";
-import { Spectral, IBM_Plex_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 
 import "./globals.css";
-
-const spectral = Spectral({
-  variable: "--font-spectral",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-});
-
-const plexMono = IBM_Plex_Mono({
-  variable: "--font-plex-mono",
-  subsets: ["latin"],
-  weight: ["400", "500", "600"],
-});
 
 export const metadata: { title: string; description: string } = {
   title: "PaaS Roadmap",
@@ -32,7 +19,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${spectral.variable} ${plexMono.variable} h-full antialiased`}>
+    <html lang="en" className="h-full antialiased">
       <body className="min-h-full flex flex-col">
         <ClerkProvider>
           {/* Global top navigation available on all pages */}

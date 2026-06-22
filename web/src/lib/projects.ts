@@ -90,7 +90,6 @@ function toProjectLanes(lanes: Array<RawLane | Lane>, preserveStatus = false): P
       status: preserveStatus && "status" in task ? task.status : "not_started",
       notes: task.notes,
       ...(task.contentPath ? { contentPath: task.contentPath } : {}),
-      ...("aiOutput" in task && task.aiOutput ? { aiOutput: task.aiOutput } : {}),
     })),
   }));
 }
