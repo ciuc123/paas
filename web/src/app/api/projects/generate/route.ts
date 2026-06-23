@@ -1,6 +1,9 @@
 import { NextRequest } from "next/server";
+import { auth } from "@clerk/nextjs/server";
 
 import type { ProjectLane } from "@/lib/projects";
+import type { LimitTier } from "@/lib/generation-limits";
+import { getGenerationLimitsForTier } from "@/lib/generation-limits";
 
 type GenerateRequest = {
   lanes: ProjectLane[];
@@ -66,17 +69,10 @@ function encodeSSE(data: object): string {
   return `data: ${JSON.stringify(data)}\n\n`;
 }
 
-// Hard limits to protect OpenAI quota and server resources
-const MAX_REQUEST_BYTES = 50_000; // reject bodies larger than ~50KB
-const MAX_LANES = 15;
-const MAX_TASKS_PER_LANE = 20;
-const MAX_TASK_TEXT_LEN = 500; // task title
-const MAX_NOTES_LEN = 2000; // task notes
-
 // Simple in-memory rate limiting (MVP): per-IP and per-user token buckets.
 // NOTE: This is best-effort for a single-instance deployment. For multi-instance/prod, replace with Redis or a shared store.
-const IP_RATE_LIMIT_PER_MINUTE = 30; // requests per minute per IP
-const USER_RATE_LIMIT_PER_MINUTE = 60; // requests per minute per user
+
+// (Tier-specific limits are provided by the generation-limits module)
 
 type Bucket = { tokens: number; lastRefill: number };
 const ipBuckets: Map<string, Bucket> = new Map();
@@ -121,22 +117,26 @@ export async function POST(request: NextRequest) {
   // Authentication is not required for this endpoint. Anonymous users are allowed.
   // If a Clerk user ID is available in the runtime, it will be used for per-user
   // rate limiting; otherwise the request is rate-limited by IP only.
-  let userId: string | null = null;
+
+  // resolve Clerk user (if present)
+  const { userId } = await auth();
+  const tier: LimitTier = userId ? "signed_in" : "anonymous";
+  const limits = getGenerationLimitsForTier(tier);
 
   // Rate limiting: per-IP and per-user
   try {
     const clientIp = getClientIp(request);
-    if (!allowRequest(ipBuckets, clientIp, IP_RATE_LIMIT_PER_MINUTE)) {
-      return new Response(JSON.stringify({ error: "Too many requests (ip)" }), {
+    if (!allowRequest(ipBuckets, clientIp, limits.ipRatePerMinute)) {
+      return new Response(JSON.stringify({ error: "Too many requests (ip)", code: "RATE_LIMIT_IP", tier, max: limits.ipRatePerMinute }), {
         status: 429,
-        headers: { "Content-Type": "application/json", "Retry-After": "60" },
+        headers: { "Content-Type": "application/json", "Retry-After": "60", "X-Limit-Tier": tier },
       });
     }
 
-    if (userId && !allowRequest(userBuckets, userId, USER_RATE_LIMIT_PER_MINUTE)) {
-      return new Response(JSON.stringify({ error: "Too many requests (user)" }), {
+    if (userId && !allowRequest(userBuckets, userId, limits.userRatePerMinute)) {
+      return new Response(JSON.stringify({ error: "Too many requests (user)", code: "RATE_LIMIT_USER", tier, max: limits.userRatePerMinute }), {
         status: 429,
-        headers: { "Content-Type": "application/json", "Retry-After": "60" },
+        headers: { "Content-Type": "application/json", "Retry-After": "60", "X-Limit-Tier": tier },
       });
     }
   } catch (e) {
@@ -148,10 +148,10 @@ export async function POST(request: NextRequest) {
   const contentLength = (request as any).headers?.get("content-length");
   if (contentLength) {
     const parsed = Number(contentLength);
-    if (!Number.isNaN(parsed) && parsed > MAX_REQUEST_BYTES) {
-      return new Response(JSON.stringify({ error: "Request body too large" }), {
+    if (!Number.isNaN(parsed) && parsed > limits.maxRequestBytes) {
+      return new Response(JSON.stringify({ error: "Request body too large", code: "LIMIT_REQUEST_BYTES_EXCEEDED", tier, max: limits.maxRequestBytes }), {
         status: 413,
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "X-Limit-Tier": tier },
       });
     }
   }
@@ -167,10 +167,10 @@ export async function POST(request: NextRequest) {
     });
   }
 
-  if (raw.length > MAX_REQUEST_BYTES) {
-    return new Response(JSON.stringify({ error: "Request body too large" }), {
+  if (raw.length > limits.maxRequestBytes) {
+    return new Response(JSON.stringify({ error: "Request body too large", code: "LIMIT_REQUEST_BYTES_EXCEEDED", tier, max: limits.maxRequestBytes }), {
       status: 413,
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "X-Limit-Tier": tier },
     });
   }
 
@@ -202,10 +202,10 @@ export async function POST(request: NextRequest) {
 
   // Only count lanes that contain at least one task when applying the MAX_LANES limit.
   const activeLanes = lanes.filter((l: any) => Array.isArray(l.tasks) && l.tasks.length > 0).length;
-  if (activeLanes > MAX_LANES) {
-    return new Response(JSON.stringify({ error: `Too many lanes with tasks (max ${MAX_LANES})` }), {
+  if (activeLanes > limits.maxLanes) {
+    return new Response(JSON.stringify({ error: `Too many lanes with tasks (max ${limits.maxLanes})`, code: "LIMIT_LANES_EXCEEDED", tier, max: limits.maxLanes }), {
       status: 413,
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "X-Limit-Tier": tier },
     });
   }
 
@@ -218,10 +218,10 @@ export async function POST(request: NextRequest) {
           headers: { "Content-Type": "application/json" },
         });
       }
-      if (lane.tasks.length > MAX_TASKS_PER_LANE) {
+      if (lane.tasks.length > limits.maxTasksPerLane) {
         return new Response(
-          JSON.stringify({ error: `Too many tasks in lane '${lane.label ?? lane.id ?? "?"}' (max ${MAX_TASKS_PER_LANE})` }),
-          { status: 413, headers: { "Content-Type": "application/json" } },
+          JSON.stringify({ error: `Too many tasks in lane '${lane.label ?? lane.id ?? "?"}' (max ${limits.maxTasksPerLane})`, code: "LIMIT_TASKS_PER_LANE_EXCEEDED", tier, max: limits.maxTasksPerLane }),
+          { status: 413, headers: { "Content-Type": "application/json", "X-Limit-Tier": tier } },
         );
       }
 
@@ -233,16 +233,16 @@ export async function POST(request: NextRequest) {
             headers: { "Content-Type": "application/json" },
           });
         }
-        if (t.task.length === 0 || t.task.length > MAX_TASK_TEXT_LEN) {
+        if (t.task.length === 0 || t.task.length > limits.maxTaskTextLen) {
           return new Response(
-            JSON.stringify({ error: `task length must be 1..${MAX_TASK_TEXT_LEN} characters` }),
-            { status: 400, headers: { "Content-Type": "application/json" } },
+            JSON.stringify({ error: `task length must be 1..${limits.maxTaskTextLen} characters`, code: "LIMIT_TASK_TEXT_EXCEEDED", tier, max: limits.maxTaskTextLen }),
+            { status: 413, headers: { "Content-Type": "application/json", "X-Limit-Tier": tier } },
           );
         }
-        if (t.notes.length > MAX_NOTES_LEN) {
+        if (t.notes.length > limits.maxNotesLen) {
           return new Response(
-            JSON.stringify({ error: `notes length must be <= ${MAX_NOTES_LEN} characters` }),
-            { status: 400, headers: { "Content-Type": "application/json" } },
+            JSON.stringify({ error: `notes length must be <= ${limits.maxNotesLen} characters`, code: "LIMIT_NOTES_EXCEEDED", tier, max: limits.maxNotesLen }),
+            { status: 413, headers: { "Content-Type": "application/json", "X-Limit-Tier": tier } },
           );
         }
 
@@ -319,6 +319,7 @@ export async function POST(request: NextRequest) {
       "Content-Type": "text/event-stream",
       "Cache-Control": "no-cache",
       Connection: "keep-alive",
+      "X-Limit-Tier": tier,
     },
   });
 }

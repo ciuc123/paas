@@ -70,5 +70,11 @@
     "label": "Go-To-Market",
     "path": ".github/instructions/12-go-to-market.instructions.md",
     "defaultTasks": []
+  },
+  {
+    "id": "limits",
+    "label": "Test limits",
+    "path": ".github/instructions/13-test-limits.instructions.md",
+    "defaultTasks": []
   }
 ]
